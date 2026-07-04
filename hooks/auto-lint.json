@@ -1,0 +1,9 @@
+{
+  "PostToolUse": [
+    {
+      "type": "command",
+      "command": "if (Test-Path \"$env:ARG_FILE\") { $ext = [IO.Path]::GetExtension(\"$env:ARG_FILE\"); if ($ext -eq '.py') { cd insight/trigger-server; python -m ruff check \"$env:ARG_FILE\" --fix 2>$null; python -m ruff format \"$env:ARG_FILE\" 2>$null; Write-Host '[HOOK] python linted' } }",
+      "timeout": 15
+    }
+  ]
+}

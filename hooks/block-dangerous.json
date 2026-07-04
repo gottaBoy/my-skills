@@ -1,0 +1,9 @@
+{
+  "PreToolUse": [
+    {
+      "type": "command",
+      "command": "$tool = \"$env:ARG_TOOL\"; if ($tool -eq 'run_in_terminal' -or $tool -eq 'create_and_run_task') { $cmd = \"$env:ARG_COMMAND\"; if ($cmd -match 'rm\s+-rf|del\s+/[fsq]|format\s+[a-z]:|>\/dev\/null\s+rm') { Write-Host '[HOOK] BLOCKED dangerous command'; exit 1 } }",
+      "timeout": 5
+    }
+  ]
+}

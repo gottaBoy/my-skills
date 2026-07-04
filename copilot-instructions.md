@@ -50,6 +50,14 @@ This project uses a Karpathy-inspired Skills system with the **Spec→Harness→
 - `@ui-designer` — UI 审查（只读）：a11y、响应式、组件一致性、状态覆盖
 - `@test-strategist` — 测试策略（可运行测试）：覆盖率分析、测试矩阵、GWT 用例
 
+### Hooks（自动执行）
+- `auto-lint.json` — 写入 Python 文件后自动 ruff lint + format
+- `block-dangerous.json` — 阻止危险终端命令 (rm -rf 等)
+
+### Memory（项目记忆）
+- `/memories/repo/` — 仓库级记忆（架构、已知问题、Skills 配置）
+- 每次 AI 发现新的项目约定或陷阱时，会自动更新记忆文件
+
 ### 标准工作流
 ```
 新功能:   /spec-generator → @architect → /execution-governor → @test-strategist → @ui-designer → /pr-checklist
