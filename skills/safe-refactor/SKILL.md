@@ -1,6 +1,6 @@
 ---
 name: safe-refactor
-description: 'Safe refactoring workflow with behavioral preservation. Use when: restructuring code without changing behavior, extracting methods/classes, improving code organization, reducing technical debt, applying design patterns. Emphasizes small steps and constant verification.'
+description: '安全重构工作流（五步法：加护栏→最小改动→验证→原子commit→清理）。Safe refactoring workflow with behavioral preservation. Use when: restructuring code, extracting methods/classes, improving organization, reducing tech debt.'
 ---
 
 # Safe Refactor — 安全重构工作流

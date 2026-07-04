@@ -1,6 +1,6 @@
 ---
 name: ui-designer
-description: 'Frontend UI/UX reviewer. Checks component consistency, accessibility (a11y), responsive design, loading/error/empty states, and design system compliance. Use when: reviewing UI components, pages, or user flows. Works with Next.js + Tailwind CSS + TypeScript projects. Tools: read-only.'
+description: 'UI/UX审查（只读）— 组件一致性、无障碍(a11y)、响应式、Loading/Empty/Error状态覆盖、设计系统合规。Frontend UI/UX reviewer. Use when: reviewing UI components, pages, or user flows. Next.js + Tailwind CSS + TypeScript. Tools: read-only.'
 tools: read_file, file_search, grep_search, semantic_search, view_image, list_dir
 ---
 

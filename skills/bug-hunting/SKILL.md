@@ -1,6 +1,6 @@
 ---
 name: bug-hunting
-description: 'Systematic bug localization and fixing workflow. Use when: debugging errors, investigating production incidents, fixing test failures, tracing root causes, analyzing stack traces or error logs.'
+description: '系统化Bug定位工作流（五步法）。Systematic bug hunting workflow. Use when: debugging errors, investigating production incidents, fixing test failures, tracing root causes, analyzing stack traces or error logs.'
 ---
 
 # Bug Hunting Skill

@@ -1,6 +1,6 @@
 ---
 name: ops-playbook
-description: 'Operations playbook for incident response, monitoring setup, log analysis, capacity planning, and disaster recovery. Use when: setting up monitoring/alerting, responding to production incidents, doing post-mortem analysis, planning capacity. Tools: read-only + terminal for diagnostic commands.'
+description: '运维排障手册 — 监控告警 + 日志分析 + 容量规划 + 灾备方案。Operations playbook for incident response, monitoring, log analysis, capacity planning, and disaster recovery. Use when: setting up monitoring/alerting, responding to production incidents, doing post-mortem analysis.'
 ---
 
 # Ops Playbook — 运维排障手册

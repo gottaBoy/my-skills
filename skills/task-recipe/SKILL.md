@@ -1,6 +1,6 @@
 ---
 name: task-recipe
-description: 'Task decomposition recipe inspired by Karpathy''s "A Recipe for Training Neural Networks". Use when: starting a new feature, breaking down complex tasks, planning implementation steps, organizing work before coding. Turns vague requirements into executable steps with clear success criteria.'
+description: '任务拆解配方（六步法：边界→输入输出→拆INVEST子任务→排序→完成标准→回滚方案）。Task decomposition recipe inspired by Karpathy. Use when: starting a new feature, breaking down complex tasks, organizing work before coding.'
 ---
 
 # Task Recipe — 把模糊需求变成可执行步骤

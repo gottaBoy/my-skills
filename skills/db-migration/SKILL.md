@@ -1,6 +1,6 @@
 ---
 name: db-migration
-description: 'Database migration workflow with safety checks. Use when: creating or modifying database schemas, adding tables/columns, writing migration scripts, changing data models, running SQL DDL/DML changes.'
+description: '数据库安全迁移（UP/DOWN回滚脚本）。Database migration workflow with safety checks. Use when: creating/modifying schemas, adding tables/columns, writing migration scripts, running DDL/DML changes.'
 ---
 
 # Database Migration Skill

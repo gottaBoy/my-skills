@@ -1,6 +1,6 @@
 ---
 name: verify-feedback
-description: 'Verification and feedback loop setup for AI-generated code. Use when: AI generates code that needs validation, setting up test harness for new code, establishing quality gates, creating automated checks, verifying refactored code behavior is unchanged.'
+description: '验证与反馈闭环（五层金字塔：类型→Lint→单元→集成→E2E）。Verification and feedback loop for AI-generated code. Use when: AI generates code that needs validation, setting up test harness, establishing quality gates.'
 ---
 
 # Verify & Feedback — 给 AI 装上"眼睛"

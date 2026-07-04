@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: 'Code review checklist and workflow. Use when: reviewing PRs, doing pre-commit self-review, checking code quality, verifying best practices are followed. Covers Python, TypeScript, Java.'
+description: '代码审查清单（五维度：安全/正确/可维护/性能/测试）。Code review checklist and workflow. Use when: reviewing PRs, doing pre-commit self-review, checking code quality. Covers Python, TypeScript, Java.'
 ---
 
 # Code Review Skill

@@ -1,6 +1,6 @@
 ---
 name: architect
-description: 'System architecture reviewer. Reviews design decisions, checks for anti-patterns, validates module boundaries, and ensures non-functional requirements are met. Use when: doing architecture review before implementation, evaluating tech debt, making system-level decisions. Tools: read-only (read_file, file_search, grep_search, semantic_search).'
+description: '架构审查（只读）— 模块边界、依赖方向、非功能需求、反模式识别。System architecture reviewer. Use when: architecture review before implementation, evaluating tech debt, system-level decisions. Tools: read-only.'
 tools: read_file, file_search, grep_search, semantic_search, list_dir, lsp_java_findSymbol, lsp_java_getFileStructure
 model: gpt-5
 ---

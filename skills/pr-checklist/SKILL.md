@@ -1,6 +1,6 @@
 ---
 name: pr-checklist
-description: 'Pre-PR self-check workflow to ensure quality before submitting pull requests. Use when: preparing to create a PR, about to push code, doing final checks before merge, self-reviewing changes.'
+description: 'PR提交前自检清单 — 范围检查+质量门+Commit规范+PR模板。Pre-PR self-check workflow. Use when: preparing to create a PR, about to push code, doing final checks before merge, self-reviewing changes.'
 ---
 
 # PR 自检 Skill

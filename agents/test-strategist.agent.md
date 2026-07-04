@@ -1,6 +1,6 @@
 ---
 name: test-strategist
-description: 'Test strategy designer and coverage analyst. Designs test plans covering unit, integration, E2E, performance, and security testing. Use when: planning tests for a feature, evaluating test coverage gaps, designing test harness. Tools: read-only + terminal (for running tests).'
+description: '测试策略设计（可运行测试）— 测试金字塔检查、覆盖率分析、GWT用例设计。Test strategy designer and coverage analyst. Use when: planning tests for a feature, evaluating test coverage gaps, designing test harness. Tools: read + terminal (for tests only).'
 tools: read_file, file_search, grep_search, semantic_search, list_dir, run_in_terminal
 ---
 

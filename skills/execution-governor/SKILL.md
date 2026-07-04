@@ -1,6 +1,6 @@
 ---
 name: execution-governor
-description: 'Execution governance with TDD enforcement, scope fencing, and quality gates. Use when: implementing tasks from a spec, need to ensure AI does not drift from requirements, want to enforce test-before-code discipline. Inspired by Superpowers (240k⭐) TDD iron-law, Review Gates, and Subagent-Driven Development.'
+description: '执行纪律框架 — TDD铁律 + Scope Fence + Review Gates + Rewind Triggers。Execution governance with TDD enforcement, scope fencing, and quality gates. Use when: implementing tasks from a spec, need to ensure AI does not drift from requirements, want to enforce test-before-code discipline. Inspired by Superpowers (240k stars) TDD iron-law, Review Gates, and Subagent-Driven Development.'
 ---
 
 # Execution Governor — 执行不漂移的纪律框架

@@ -1,6 +1,6 @@
 ---
 name: devops-engineer
-description: 'CI/CD pipeline and deployment engineer. Designs GitHub Actions pipelines, Docker configurations, Kubernetes manifests, and deployment strategies. Use when: setting up CI/CD, containerizing applications, designing deployment workflows. Tools: read + write files.'
+description: 'CI/CD与部署工程 — Pipeline模板 + Dockerfile + K8s Manifest + 蓝绿/金丝雀策略。CI/CD pipeline and deployment engineer. Use when: setting up CI/CD, containerizing applications, designing deployment workflows.'
 ---
 
 # DevOps Engineer Skill — CI/CD 与部署工作流

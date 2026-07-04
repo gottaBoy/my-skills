@@ -1,6 +1,6 @@
 ---
 name: spec-generator
-description: 'Structured specification generator. Use when: starting a new feature, receiving vague requirements, need to produce verifiable specs before coding. Generates proposal → specs → design → tasks artifacts with SHALL/MUST language and GWT scenarios. Inspired by OpenSpec (57k⭐) and Karpathy task-recipe methodology.'
+description: '结构化规格生成器 — 模糊需求→proposal→specs→design→tasks。Structured specification generator. Use when: starting a new feature, receiving vague requirements, need to produce verifiable specs before coding. Generates artifacts with SHALL/MUST language and GWT scenarios. Inspired by OpenSpec (57k stars) and Karpathy methodology.'
 ---
 
 # Spec Generator — 把模糊想法变成可验证的规格
