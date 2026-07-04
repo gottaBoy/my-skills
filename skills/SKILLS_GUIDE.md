@@ -6,6 +6,31 @@ description: 'Complete guide for the autodrive project Agent Skills system — p
 # autodrive Agent Skills — 完整使用指南
 
 > 基于 Andrej Karpathy 的 AI 编程哲学，结合 VS Code Copilot Agent Customization 框架的落地实践。
+>
+> **最新**：已集成 Loop Engineering（ `.github/loop/` ），支持 `/loop` `/goal` 自动循环。
+
+## 项目架构说明
+
+`autodrive` 是一个**多项目 VS Code 工作空间**（非单体仓库）：
+
+```
+c:\d\autodrive\                  ← 工作空间根（不是 git 仓库）
+├── .github\                     ← 👈 就是这个仓库！(my-skills)
+│   ├── skills/                  ← VS Code Copilot 从这里加载
+│   ├── instructions/            ← 按文件类型匹配
+│   ├── agents/                  ← 自定义 Agent 角色
+│   ├── loop/                    ← Loop Engineering 基础设施
+│   ├── hooks/                   ← 自动执行的钩子
+│   ├── mcp/                     ← MCP Connectors 配置
+│   └── workflows/               ← GitHub Actions Automation
+├── web/                         ← 独立仓库：Next.js 前端
+├── insight/trigger-server/      ← 独立仓库：Flask 分析服务
+├── jetlinks-community/          ← 独立仓库：IoT 平台
+├── zeron-upload-hub/            ← 独立仓库：Flask 上传服务
+└── jetlinks-ui-vue/             ← 独立仓库：Vue 前端
+```
+
+`c:\d\autodrive\.github\` 本身就是一个独立的 Git 仓库，推送到 `git@github.com:gottaBoy/my-skills.git`。VS Code Copilot **自动从工作空间根目录的 `.github/skills/` 加载**，不需要任何额外配置。跨机器使用只需 `git clone` 这个仓库到 `.github/` 即可。
 
 ---
 

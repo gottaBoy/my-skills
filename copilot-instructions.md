@@ -98,6 +98,13 @@ This project uses a Karpathy-inspired Skills system with the **Spec→Harness→
 - `/memories/repo/` — 仓库级记忆（架构、已知问题、Skills 配置）
 - 每次 AI 发现新的项目约定或陷阱时，会自动更新记忆文件
 
+### Loop Engineering（自主循环）
+- `.github/loop/` — Loop Engineering 基础设施（STATE.md, GUIDE.md, WORKTREES.md）
+- `.claude/agents/` — 自动循环 Agent（ci-fixer, code-reviewer）
+- `.github/workflows/ci-triage.yml` — 每日 CI 分诊 Automation
+- `.github/mcp/` — MCP Connectors 配置指南
+- 详见 `.github/loop/README.md`
+
 ### 标准工作流
 ```
 新功能:   /spec-generator → @architect → /execution-governor → @test-strategist → @ui-designer → /pr-checklist
@@ -107,4 +114,5 @@ Bug修复:  /bug-hunting → /execution-governor → /verify-feedback → /pr-ch
 CI/CD:    /devops-engineer → /verify-feedback → /pr-checklist
 运维:     /ops-playbook → @architect (复盘)
 数据闭环:  /data-loop → /bug-hunting（排障）→ /pr-checklist
+自动循环:  CI Triage (/loop) → ci-fixer → code-reviewer → PR → STATE.md
 ```
