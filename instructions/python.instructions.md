@@ -5,6 +5,8 @@ applyTo: "**/*.py"
 
 # Python Coding Standards — autodrive
 
+> 本文件属于 Spec 层 — 提供编码规范。执行时配合 `execution-governor` 确保 TDD 和 Scope Fence。
+
 ## Type Hints
 ```python
 # ✅ Always use type hints

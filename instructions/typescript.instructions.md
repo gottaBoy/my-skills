@@ -5,6 +5,8 @@ applyTo: "web/**/*.{ts,tsx}"
 
 # TypeScript/React Coding Standards — autodrive web
 
+> 本文件属于 Spec 层 — 提供编码规范。执行时配合 `execution-governor` 确保 TDD 和 Scope Fence。
+
 ## Component Pattern
 ```tsx
 // ✅ Functional components with interface props

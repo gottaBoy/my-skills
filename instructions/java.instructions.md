@@ -5,6 +5,8 @@ applyTo: "jetlinks-community/**/*.java"
 
 # Java Coding Standards — autodrive jetlinks
 
+> 本文件属于 Spec 层 — 提供编码规范。执行时配合 `execution-governor` 确保 TDD 和 Scope Fence。
+
 ## Project Structure
 ```
 jetlinks-community/
