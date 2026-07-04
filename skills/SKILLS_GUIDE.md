@@ -71,8 +71,9 @@ c:\d\autodrive\                    ← 工作空间根目录（非 git 仓库）
 └── ...
 ```
 
-> **关键设计**：VS Code Copilot 扫描 `.github/skills/` 基于文件路径，不关心 `.github` 是不是 git 仓库。
-> 所以 `.github` 作为独立仓库 clone 到工作空间根目录，既有版本控制又天然被 VS Code 发现。
+> **关键设计**：VS Code Copilot 基于**文件路径**扫描 `.github/skills/`，它的发现逻辑只是"工作空间根目录下有没有 `.github/skills/` 这个路径"，完全不关心也不需要在 git 仓库内。所以 `.github` 可以是独立的 git 仓库（clone 到工作空间根目录），也可以就是普通文件夹。这意味着：
+> - 同事 clone `jetlinks-community` 仓库 → **不会**自带 skill（`.github/` 在仓库外面）
+> - 同事 clone `autodrive-skills` 仓库到工作空间 `.github/` 位置 → **才会**生效
 
 ### 文件结构
 

@@ -20,22 +20,73 @@
 
 原理：VS Code Copilot 自动扫描**工作空间根目录**下的 `.github/skills/`，找到 `SKILL.md` 就加载。
 
-```powershell
-# 新电脑初始化（一行命令）
-cd c:\d\autodrive
-git clone git@github.com:gottaBoy/my-skills.git .github
+### Windows (PowerShell)
 
-# 完成后打开 VS Code — Skills 自动生效
+```powershell
+# 新电脑初始化
+cd C:\d\autodrive
+git clone git@github.com:gottaBoy/my-skills.git .github
+code .   # 打开 VS Code — Skills 自动生效
+
+# 日常更新
+cd C:\d\autodrive\.github; git pull
+```
+
+### Linux / macOS (Bash / Zsh)
+
+```bash
+# 新电脑初始化
+cd ~/workspace/autodrive       # 替换为你的 workspace 路径
+git clone git@github.com:gottaBoy/my-skills.git .github
 code .
+
+# 日常更新
+cd ~/workspace/autodrive/.github && git pull
+```
+
+### 批处理脚本（Windows 一键脚本）
+
+创建 `setup-skills.bat`，双击运行：
+
+```batch
+@echo off
+cd /d C:\d\autodrive
+if exist ".github\" (
+    echo .github already exists, updating...
+    cd .github
+    git pull
+) else (
+    echo Cloning skills...
+    git clone git@github.com:gottaBoy/my-skills.git .github
+)
+echo Done. Open VS Code to use skills.
+pause
+```
+
+### Shell 脚本（Linux / macOS 一键脚本）
+
+创建 `setup-skills.sh`：
+
+```bash
+#!/bin/bash
+WORKSPACE="$HOME/workspace/autodrive"   # 修改为你的 workspace 路径
+cd "$WORKSPACE" || exit 1
+
+if [ -d ".github" ]; then
+    echo ".github already exists, updating..."
+    cd .github && git pull
+else
+    echo "Cloning skills..."
+    git clone git@github.com:gottaBoy/my-skills.git .github
+fi
+echo "Done. Open VS Code to use skills."
 ```
 
 ```bash
-# 日常更新
-cd c:\d\autodrive\.github
-git pull   # 拉取最新的 skills
+chmod +x setup-skills.sh && ./setup-skills.sh
 ```
 
-⚠️ **注意**：`c:\d\autodrive` 是工作空间根目录，不是 git 仓库。`.github/` 是独立 clone 进来的。
+⚠️ **注意**：`.github/` 是独立 clone 进来的，workspace 根目录本身不需要是 git 仓库。
 
 ---
 

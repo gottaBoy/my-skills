@@ -20,7 +20,9 @@ autodrive-skills/
 │   ├── python.instructions.md     ← applyTo: **/*.py
 │   ├── typescript.instructions.md ← applyTo: web/**/*.{ts,tsx}
 │   └── java.instructions.md       ← applyTo: jetlinks-community/**/*.java
-├── skills/                        ← 按需调用的工作流
+├── skills/                        ← 按需调用的工作流（Spec→Harness→Loop 三层）
+│   ├── spec-generator/            ← ✨ 结构化规格生成器
+│   ├── execution-governor/        ← ✨ 执行纪律框架
 │   ├── task-recipe/               ← 任务拆解配方
 │   ├── code-review/               ← 代码审查清单
 │   ├── bug-hunting/               ← Bug 定位五步法
@@ -29,7 +31,8 @@ autodrive-skills/
 │   ├── verify-feedback/           ← 验证与反馈闭环
 │   ├── safe-refactor/             ← 安全重构工作流
 │   ├── SKILLS_GUIDE.md            ← 完整使用指南
-│   └── SYNC_GUIDE.md              ← 跨电脑同步指南
+│   ├── SYNC_GUIDE.md              ← 跨电脑同步指南
+│   └── WORKFLOWS.md               ← 标准工作流串联文档
 └── .gitignore
 ```
 
@@ -68,16 +71,19 @@ git pull
 
 详细说明见 [SKILLS_GUIDE.md](skills/SKILLS_GUIDE.md)。
 
-## Skill 清单
+## Skill 清单 (9 个，按 Spec→Harness→Loop 三层)
 
-| Skill | 触发方式 | 一句话描述 |
-|-------|---------|-----------|
-| `task-recipe` | `/task-recipe` | 把模糊需求拆成可执行步骤 |
-| `code-review` | `/code-review` | 五维度代码审查 |
-| `bug-hunting` | `/bug-hunting` | 系统化 Bug 定位 |
-| `db-migration` | `/db-migration` | 数据库安全变更 |
-| `pr-checklist` | `/pr-checklist` | PR 提交前质量把关 |
-| `verify-feedback` | `/verify-feedback` | 给 AI 代码建立验证闭环 |
+| 层 | Skill | 触发方式 | 一句话描述 |
+|---|-------|---------|-----------|
+| **Spec** | `spec-generator` | `/spec-generator` | 模糊需求 → 结构化规格（proposal→specs→design→tasks） |
+| **Spec** | `task-recipe` | `/task-recipe` | 把大任务拆成可执行的 INVEST 子任务 |
+| **Harness** | `execution-governor` | `/execution-governor` | TDD 铁律 + Scope Fence + Review Gates |
+| **Harness** | `code-review` | `/code-review` | 五维度代码审查（安全/正确/可维护/性能/测试） |
+| **Harness** | `verify-feedback` | `/verify-feedback` | 给 AI 代码建立五层验证金字塔 |
+| **Harness** | `bug-hunting` | `/bug-hunting` | 系统化 Bug 定位五步法 |
+| **Loop** | `pr-checklist` | `/pr-checklist` | PR 提交前质量把关 + 自检清单 |
+| **Loop** | `safe-refactor` | `/safe-refactor` | 安全重构（原子 commit + 行为不变） |
+| **Loop** | `db-migration` | `/db-migration` | 数据库安全迁移（UP/DOWN 回滚） |
 | `safe-refactor` | `/safe-refactor` | 安全重构五步法 |
 
 ## 核心理念
