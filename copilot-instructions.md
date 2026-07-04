@@ -65,9 +65,13 @@
 ## Agent Skills
 This project uses a Karpathy-inspired Skills system with the **Spec→Harness→Loop** model. Type `/` in Copilot Chat to see available skills. See `.github/skills/SKILLS_GUIDE.md` for the complete philosophy and usage guide.
 
+> **模型无关**: Skills 是纯 Markdown 文件，对所有模型（DeepSeek、Claude、GPT 等）同等有效。
+> Agent 文件中的 `model` 字段已移除，VS Code Copilot 自动使用你当前配置的模型。
+
 ### Spec 层（规划）
 - `spec-generator` — 模糊需求 → proposal → specs → design → tasks（结构化规格）
 - `task-recipe` — 六步拆解法，把大任务变成可执行的 INVEST 子任务
+- `workflow-orchestrator` — 七状态机编排：INIT→CLARIFY→SPEC→HARNESS→IMPL→REVIEW→DONE
 
 ### Harness 层（执行）
 - `execution-governor` — TDD 铁律 + Scope Fence + Review Gates + Rewind Triggers
