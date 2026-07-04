@@ -1,6 +1,9 @@
 # Agent Skills 跨电脑同步方案
 
-> **前置知识**：本 Skills 仓库（`autodrive-skills`）是一个独立的 Git 仓库，clone 到工作空间根目录 `c:\d\autodrive\.github\` 位置。
+> **前置知识**：本 Skills 仓库（`gottaBoy/my-skills`）是独立 Git 仓库，clone 到**多项目工作空间根目录** `c:\d\autodrive\.github\` 位置。
+> 
+> `autodrive` 不是单体 Git 仓库，而是包含多个独立仓库（web, jetlinks-community, insight 等）的 VS Code 工作空间。Skills 放在工作空间根 `.github/` 下，对所有子项目生效。
+>
 > VS Code Copilot 基于文件路径发现 skills，不关心 `.github` 是否在某个 git 仓库内。
 
 ---
