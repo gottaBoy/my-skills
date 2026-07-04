@@ -82,6 +82,9 @@ This project uses a Karpathy-inspired Skills system with the **Spec→Harness→
 - `safe-refactor` — 五步安全重构（原子 commit + 行为不变）
 - `db-migration` — 数据库安全迁移（UP/DOWN 脚本 + 回滚）
 
+### Domain Skills（领域知识）
+- `data-loop` — 数据闭环管道专家：snapshot_recorder 全链路架构、故障排查、优化方案
+
 ### Custom Agents（角色分工）
 - `@architect` — 架构审查（只读）：模块边界、依赖方向、非功能需求
 - `@ui-designer` — UI 审查（只读）：a11y、响应式、组件一致性、状态覆盖
@@ -103,4 +106,5 @@ Bug修复:  /bug-hunting → /execution-governor → /verify-feedback → /pr-ch
 重构:     /safe-refactor → /code-review → /pr-checklist
 CI/CD:    /devops-engineer → /verify-feedback → /pr-checklist
 运维:     /ops-playbook → @architect (复盘)
+数据闭环:  /data-loop → /bug-hunting（排障）→ /pr-checklist
 ```
