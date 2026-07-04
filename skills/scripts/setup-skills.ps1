@@ -1,0 +1,1 @@
+git clone https://github.com/<org>/autodrive-skills.git .github

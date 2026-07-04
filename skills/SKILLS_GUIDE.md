@@ -127,6 +127,8 @@ c:\d\autodrive\                    ← 工作空间根目录（非 git 仓库）
 | Skill | 触发方式 | 适用场景 | 关键输出 |
 |-------|---------|---------|---------|
 | `/task-recipe` | 新功能开发前 | 模糊需求 → 可执行步骤 | 子任务列表 + 完成标准 |
+| `/spec-generator` | 新功能开发前 | 需求 → proposal → specs → design → tasks | 结构化规格文档 |
+| `/execution-governor` | 执行代码时 | TDD + Scope Fence + Gate 管控 | 执行契约 + 审查记录 |
 | `/code-review` | 提交前 / PR review | 代码质量检查 | 五维度检查清单 |
 | `/bug-hunting` | 遇到 Bug 时 | 系统化定位根因 | 五步定位法 + 验证方案 |
 | `/db-migration` | 改数据库时 | 安全变更数据库 | 变更 + 回滚脚本 |
@@ -137,11 +139,11 @@ c:\d\autodrive\                    ← 工作空间根目录（非 git 仓库）
 ### 典型工作流组合
 
 ```
-新功能开发全流程：
-  /task-recipe → /code-review → /verify-feedback → /pr-checklist
+新功能开发全流程（Spec→Harness→Loop）：
+  /spec-generator → /task-recipe → /execution-governor → /code-review → /verify-feedback → /pr-checklist
 
 Bug 修复全流程：
-  /bug-hunting → /verify-feedback → /code-review → /pr-checklist
+  /bug-hunting → /spec-generator (delta) → /execution-governor → /verify-feedback → /pr-checklist
 
 数据库变更全流程：
   /db-migration → /verify-feedback → /pr-checklist
