@@ -1,0 +1,34 @@
+---
+description: "Use when writing TypeScript/React code in the Next.js web app. Covers component patterns, API calls, and project conventions."
+applyTo: "web/**/*.{ts,tsx}"
+---
+
+# TypeScript/React Coding Standards — autodrive web
+
+## Component Pattern
+```tsx
+// ✅ Functional components with interface props
+interface TripCardProps {
+  tripId: number;
+  title: string;
+  onSelect: (id: number) => void;
+}
+
+export function TripCard({ tripId, title, onSelect }: TripCardProps) {
+  return <div onClick={() => onSelect(tripId)}>{title}</div>;
+}
+```
+
+## Conventions
+- Use `interface` over `type` for component props
+- Server components by default; add `'use client'` only when needed
+- API calls go through `lib/api/` helpers, not inline fetch
+- Use Next.js App Router patterns (layout.tsx, page.tsx, loading.tsx)
+
+## Styling
+- Use Tailwind CSS for styling
+- Avoid inline styles except for dynamic values
+
+## Testing
+- Use `npm run lint` for static analysis
+- Run `npm run build` to catch type errors before pushing
