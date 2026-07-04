@@ -37,16 +37,25 @@ This project uses a Karpathy-inspired Skills system with the **Spec→Harness→
 - `code-review` — 五维度代码审查（安全/正确/可维护/性能/测试）
 - `verify-feedback` — 五层验证金字塔（类型→Lint→单元→集成→E2E）
 - `bug-hunting` — 五步系统化 Bug 定位
+- `devops-engineer` — CI/CD Pipeline 模板 + Dockerfile + 部署策略
+- `ops-playbook` — 运维排障手册 + 监控告警 + 日志分析 + 灾备
 
 ### Loop 层（闭环）
 - `pr-checklist` — PR 提交前自检 + 质量门
 - `safe-refactor` — 五步安全重构（原子 commit + 行为不变）
 - `db-migration` — 数据库安全迁移（UP/DOWN 脚本 + 回滚）
 
+### Custom Agents（角色分工）
+- `@architect` — 架构审查（只读）：模块边界、依赖方向、非功能需求
+- `@ui-designer` — UI 审查（只读）：a11y、响应式、组件一致性、状态覆盖
+- `@test-strategist` — 测试策略（可运行测试）：覆盖率分析、测试矩阵、GWT 用例
+
 ### 标准工作流
 ```
-新功能:   /spec-generator → /execution-governor → /code-review → /pr-checklist
+新功能:   /spec-generator → @architect → /execution-governor → @test-strategist → @ui-designer → /pr-checklist
 Bug修复:  /bug-hunting → /execution-governor → /verify-feedback → /pr-checklist
 数据库:   /db-migration → /verify-feedback → /pr-checklist
 重构:     /safe-refactor → /code-review → /pr-checklist
+CI/CD:    /devops-engineer → /verify-feedback → /pr-checklist
+运维:     /ops-playbook → @architect (复盘)
 ```
