@@ -47,15 +47,50 @@ flowchart LR
 
     subgraph Hub["☁️ Hub"]
         TASKS["POST /tasks → PENDING<br/>PATCH → UPLOADING<br/>PATCH → UPLOADED"]
-        DAG["trigger_convert_dag<br/>→ Argo/Airflow"]
+        EVENTS["Argo Events<br/>EventSource → Sensor"]
+        WF["Argo Workflow<br/>bag2mcap → funasr → ..."]
+        DASHBOARD["Dashboard<br/>/dashboard"]
     end
 
     API -->|"rules JSON"| FETCH
     UPLOAD -->|"POST /tasks"| TASKS
     UPLOAD -->|"PATCH status"| TASKS
     UPLOAD -->|"Upload"| S3["TOS/S3"]
-    TASKS --> DAG
+    TASKS -->|"trigger_convert_dag<br/>POST webhook"| EVENTS
+    EVENTS --> WF
+    WF -->|"bag2mcap-post<br/>PATCH PROCESSING + argo_workflow_name"| TASKS
+    WF -->|"post-pipeline<br/>PATCH COMPLETED/FAILED"| TASKS
+    TASKS --> DASHBOARD
 ```
+
+## 回调机制
+
+> ⚠️ **只有 zeron-upload-hub 触发的 dataloop pipeline 才有回调**。guangqing 等离线 pipeline 不走 upload-hub，`UPLOAD_HUB_URL` 未设，`_callback_hub` 自动跳过。
+
+```mermaid
+flowchart TD
+    HUB["upload-hub<br/>update_status(UPLOADED)"]
+    HUB -->|"① POST EventSource webhook"| EVENTS["Argo Events"]
+    EVENTS -->|"② Sensor → Workflow"| WF["Argo Workflow"]
+    WF --> CTRL["controller"]
+    CTRL --> B2M["bag2mcap"]
+    B2M --> POST["bag2mcap-post<br/>orchestrator"]
+    POST -->|"③ PATCH /process-status<br/>{status: PROCESSING, argo_workflow_name}"| HUB
+    POST --> PARALLEL["funasr-vad | extrinsic-check | data-analyze"]
+    PARALLEL --> FINAL["post-pipeline"]
+    FINAL -->|"④ PATCH /process-status<br/>{status: COMPLETED | FAILED}"| HUB
+
+    style HUB fill:#1890ff,color:#fff
+    style WF fill:#52c41a,color:#fff
+    style POST fill:#722ed1,color:#fff
+    style FINAL fill:#faad14,color:#fff
+```
+
+| 回调点 | 时序 | 内容 |
+|--------|------|------|
+| bag2mcap-post | bag2mcap 完成后 | `status=PROCESSING` + `argo_workflow_name` |
+| post-pipeline | 全部下游完成后 | `status=COMPLETED` 或 `FAILED` |
+| guangqing 等 | 无 | `UPLOAD_HUB_URL` 为空 → 跳过 |
 
 ## 排障决策树
 
@@ -96,6 +131,49 @@ flowchart TD
 | `api_client.py` | 云端 API 客户端 | token 过期、重试、热重载 |
 | `disk_manager.py` | 磁盘清理+录制控制 | 只管理 `events/`，不管理 session（默认） |
 | `config_loader.py` | 统一配置加载 | YAML + `SNAP_` env 覆盖 + 磁盘自适应 |
+| `dag_trigger.py` | Argo Events webhook 触发 | 只发 dataloop，带 3 次退避重试 |
+| `routes/tasks.py` | 上传生命周期 API | vname 提取 + dag_triggered_at 去重 |
+| `routes/pages.py` | Dashboard | 任务列表 / 重试 / Argo 直达 |
+| `argo_client.py` | Argo API（已废弃） | dataloop 改用 Argo Events webhook |
+| `orchestrator/pipelines/bag_convert.py` | 云端 pipeline 编排 | `_callback_hub` 受 `UPLOAD_HUB_URL` 控制 |
+
+## 生产扩展性设计
+
+### 多 pipeline 支持（配置驱动）
+
+| 等级 | 方式 | 改动 |
+|------|------|------|
+| **新增 pipeline** | 设 `PIPELINES_JSON` env var | 零代码，只需加 EventSource endpoint + Sensor + WF |
+| **新增步骤** | 设 `PIPELINE_STEPS_JSON` env var | 零代码，JSON 数组追加 |
+| **新增状态** | 改 `VALID_*_STATUSES` + `*_TRANSITIONS` | 常量级，models.py |
+| **新增回调** | 加 workflow 步骤 + curl PATCH | 纯 YAML，无需改 upload-hub |
+
+```bash
+# 加新 pipeline 只需环境变量：
+PIPELINES_JSON='{"dataloop":"dataloop-bag-convert","new-type":"new-type-endpoint"}'
+PIPELINE_STEPS_JSON='[{"name":"step1","order":1,"parent":""},{"name":"step2","order":2,"parent":"step1"}]'
+```
+
+### 告警信号（Prometheus 就绪）
+
+```
+# 触发失败
+task{status="UPLOADED",dag_triggered_at=""}  # 需手动重试
+
+# 处理悬挂
+task{process_status="PROCESSING"} AND process_started_at < now() - 6h
+
+# 工作流失败
+task{process_status="FAILED"}  # 需 argo retry
+```
+
+| 决策 | 说明 |
+|------|------|
+| **dataloop 用 Argo Events，不用 Argo API** | Sensor 模式解耦，EventSource webhook 触发 |
+| **bag2mcap 成功不重跑** | 文件处理不可逆，retryStrategy 只在失败时生效 |
+| **回调仅 dataloop 有** | `UPLOAD_HUB_URL` 环境变量控制，guangqing 不设 → 自动跳过 |
+| **vname 从 task_id 提取** | `ZSD-DP007_2026-07-05-01-49-30` → regex → `ZSD-DP007` |
+| **多 trigger 去重** | `dag_triggered_at` DB 字段 + strip `_\d+` 后缀 |
 
 ## 核心设计原则
 
@@ -130,12 +208,100 @@ echo "Rules: $(ros2 topic echo /zeron/cloud/rules --once 2>/dev/null | python3 -
 # 查看日志
 ros2 topic echo /rosout | grep -E "\[TRIGGER\]|\[UPLOAD\]|\[DiskManager\]|\[CLIP\]"
 
+# 云端运维
+kubectl logs -l app=zeron-upload-hub -n data-pipeline --tail 50  # hub 日志
+kubectl get workflows -n smartdrive | grep dataloop              # Argo 任务
+argo logs -n smartdrive @latest                                  # WF 日志
+
+# 重试失败触发
+curl -X POST http://upload-hub/api/v1/tasks/{task_id}/retry
+
+# 从失败步骤恢复 Argo WF
+argo retry <workflow-name> -n smartdrive
+
 # 紧急降低水位
 export SNAP_DISK_HIGH_WATERMARK_PCT=70
 pkill -f disk_manager.py && python3 /path/to/disk_manager.py &
 
 # 启动 recorder
 ros2 launch snapshot_recorder recorder.launch.py --ros-args -p session_parent_dir:=/mnt/disk_main
+```
+
+## 部署流程
+
+### 涉及组件
+
+| 组件 | 路径 | 部署方式 |
+|------|------|---------|
+| orchestrator 镜像 | `data-preprocess-k8s/orchestrator/` | `build.sh` → Harbor |
+| Argo WorkflowTemplate | `data-preprocess-k8s/argo-data-preprocess/dataloop_bag_convert/` | `kubectl apply` |
+| ResourceQuota | `data-preprocess-k8s/argo-config/resourcequota-dataloop.yaml` | `kubectl apply` |
+| zeron-upload-hub | `zeron-upload-hub/` | `kubectl apply` deployment |
+
+### 部署顺序
+
+```
+orchestrator 镜像 ──→ Argo WorkflowTemplate + ResourceQuota ──→ upload-hub
+     (先)                         (中)                              (后)
+```
+
+> **依赖**：WorkflowTemplate 引用 orchestrator 镜像 tag，必须先 push 镜像再 apply。upload-hub 无强依赖，但建议最后部署以便验证回调。
+
+### 1. 构建 & 推送 Orchestrator 镜像
+
+```bash
+cd data-preprocess-k8s/orchestrator
+# 确认版本号（每次变更 +1）
+grep '^VERSION=' build.sh
+# 构建并推送（Mac 自动加 --platform linux/amd64）
+bash build.sh
+```
+
+> build 完成后会打印 sed 命令，用于批量更新 WorkflowTemplate 中的 image tag。
+
+### 2. 应用 Argo 配置
+
+```bash
+# WorkflowTemplate（确认 image tag 已更新为最新版本）
+kubectl apply -f data-preprocess-k8s/argo-data-preprocess/dataloop_bag_convert/workflowtemplate.yaml -n smartdrive
+
+# ResourceQuota（首次部署，后续跳过）
+kubectl apply -f data-preprocess-k8s/argo-config/resourcequota-dataloop.yaml -n smartdrive
+
+# 验证
+kubectl get workflowtemplate dataloop-bag-convert -n smartdrive
+kubectl get resourcequota dataloop-quota -n smartdrive
+```
+
+### 3. 部署 zeron-upload-hub
+
+```bash
+cd zeron-upload-hub
+# 确认 image tag
+grep 'image:' k8s/deployment.yaml
+kubectl apply -f k8s/deployment.yaml -n data-pipeline
+kubectl rollout status deployment/zeron-upload-hub -n data-pipeline
+```
+
+### 部署验证
+
+```bash
+# 1. Hub 健康检查
+curl -s http://upload-hub/api/v1/health | python3 -m json.tool
+
+# 2. Dashboard 可访问
+curl -s -o /dev/null -w "%{http_code}" http://upload-hub/dashboard
+# 期望: 200
+
+# 3. Argo WorkflowTemplate 可列出
+kubectl get workflowtemplate -n smartdrive | grep dataloop
+
+# 4. 端到端测试：手动触发一条任务
+curl -X POST http://upload-hub/api/v1/tasks/{task_id}/retry
+
+# 5. 观察 Argo Workflow 是否创建
+kubectl get workflows -n smartdrive | grep dataloop
+argo logs -n smartdrive @latest
 ```
 
 ## 参考文档
@@ -145,3 +311,4 @@ ros2 launch snapshot_recorder recorder.launch.py --ros-args -p session_parent_di
 - [ops-runbook.md](references/ops-runbook.md) — 日常巡检 + 应急响应 + 配置调优 + Run Log & Budget
 - [pipeline-architecture.md](references/pipeline-architecture.md) — 系统边界 + LOOP 反模式对照 + 升级路径
 - [loop-constraints.md](references/loop-constraints.md) — 机器可读约束（Pre-Flight + 重试上限 + 磁盘预算 + denylist + 紧急覆盖）
+- [bag2mcap-pipeline-analysis.md](references/bag2mcap-pipeline-analysis.md) — bag2mcap 全链路分析 + Argo Events 架构 + TOS 路径映射 + 重试策略
