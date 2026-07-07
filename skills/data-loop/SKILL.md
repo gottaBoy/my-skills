@@ -59,7 +59,7 @@ flowchart LR
     TASKS -->|"trigger_convert_dag<br/>POST webhook"| EVENTS
     EVENTS --> WF
     WF -->|"bag2mcap-post<br/>PATCH PROCESSING + argo_workflow_name"| TASKS
-    WF -->|"post-pipeline<br/>PATCH COMPLETED/FAILED"| TASKS
+    WF -->|"onExit handler<br/>PATCH COMPLETED/FAILED"| TASKS
     TASKS --> DASHBOARD
 ```
 
@@ -67,30 +67,36 @@ flowchart LR
 
 > ⚠️ **只有 zeron-upload-hub 触发的 dataloop pipeline 才有回调**。guangqing 等离线 pipeline 不走 upload-hub，`UPLOAD_HUB_URL` 未设，`_callback_hub` 自动跳过。
 
-```mermaid
-flowchart TD
-    HUB["upload-hub<br/>update_status(UPLOADED)"]
-    HUB -->|"① POST EventSource webhook"| EVENTS["Argo Events"]
-    EVENTS -->|"② Sensor → Workflow"| WF["Argo Workflow"]
-    WF --> CTRL["controller"]
-    CTRL --> B2M["bag2mcap"]
-    B2M --> POST["bag2mcap-post<br/>orchestrator"]
-    POST -->|"③ PATCH /process-status<br/>{status: PROCESSING, argo_workflow_name}"| HUB
-    POST --> PARALLEL["funasr-vad | extrinsic-check | data-analyze"]
-    PARALLEL --> FINAL["post-pipeline"]
-    FINAL -->|"④ PATCH /process-status<br/>{status: COMPLETED | FAILED}"| HUB
+### 双回调冗余设计（Argo onExit）
 
-    style HUB fill:#1890ff,color:#fff
-    style WF fill:#52c41a,color:#fff
-    style POST fill:#722ed1,color:#fff
-    style FINAL fill:#faad14,color:#fff
+```
+bag2mcap-post (Python, 3次重试)          onExit handler (Argo 原生, 永远执行)
+├─ PROCESSING + 前置步骤 COMPLETED        ├─ Succeeded → 全量步骤 COMPLETED
+│                                         ├─ Failed → FAILED (保留前置步骤状态)
+│                                         │  ({{workflow.status}} 在 onExit 上下文有效)
+▼                                         ▼
+              upload-hub 盲写 upsert
+         (任意一个回调成功 = 状态完整)
 ```
 
-| 回调点 | 时序 | 内容 |
-|--------|------|------|
-| bag2mcap-post | bag2mcap 完成后 | `status=PROCESSING` + `argo_workflow_name` |
-| post-pipeline | 全部下游完成后 | `status=COMPLETED` 或 `FAILED` |
-| guangqing 等 | 无 | `UPLOAD_HUB_URL` 为空 → 跳过 |
+### 可靠性矩阵
+
+| 场景 | bag2mcap-post | exit-handler | Hub 最终状态 |
+|------|:---:|:---:|------|
+| 全部成功 | ✅ | ✅ | PROCESSING→COMPLETED, 全步骤 COMPLETED |
+| 某步失败 | ✅ | ✅ | PROCESSING→FAILED, 前置步骤保留 |
+| bag2mcap-post 丢 | ❌ | ✅ | COMPLETED/FAILED (NOT_STARTED→终态) |
+| exit-handler 丢 | ✅ | ❌ | PROCESSING (悬挂→重试) |
+| 两个回调都丢 | ❌ | ❌ | UPLOADED 无进展 → Dashboard 触发 DAG 重试 |
+
+### 幂等性保证
+
+| 操作 | 机制 |
+|------|------|
+| DAG 触发 | `dag_triggered_at` 去重 + strip `_\d+` 后缀 |
+| 步骤写入 | `upsert_step_by_name` 盲写，重复调用安全 |
+| FAILED 重试 | Argo 原生 retry（只重跑失败节点，bag2mcap 不重跑）+ fallback 到新 Workflow |
+| 回调重试 | `_callback_hub` 3次指数退避 (1s/2s/4s) |
 
 ## 排障决策树
 
@@ -157,19 +163,21 @@ PIPELINE_STEPS_JSON='[{"name":"step1","order":1,"parent":""},{"name":"step2","or
 ### 告警信号（Prometheus 就绪）
 
 ```
-# 触发失败
-task{status="UPLOADED",dag_triggered_at=""}  # 需手动重试
+# 触发失败（从未触发）
+task{status="UPLOADED",dag_triggered_at=""}  # Dashboard → "触发 DAG"
+
+# 工作流失败（可重试）
+task{process_status="FAILED"}  # Dashboard → "重试"，Argo 原生 retry（只重跑失败节点）
 
 # 处理悬挂
 task{process_status="PROCESSING"} AND process_started_at < now() - 6h
-
-# 工作流失败
-task{process_status="FAILED"}  # 需 argo retry
 ```
 
 | 决策 | 说明 |
 |------|------|
 | **dataloop 用 Argo Events，不用 Argo API** | Sensor 模式解耦，EventSource webhook 触发 |
+| **最终回调用 onExit handler，不用 DAG 任务** | Argo 原生保证永远执行，无需复杂 depends 表达式 |
+| **retry 用 Argo 原生 retry API** | 只重跑失败节点，bag2mcap 不重跑已转换文件 |
 | **bag2mcap 成功不重跑** | 文件处理不可逆，retryStrategy 只在失败时生效 |
 | **回调仅 dataloop 有** | `UPLOAD_HUB_URL` 环境变量控制，guangqing 不设 → 自动跳过 |
 | **vname 从 task_id 提取** | `ZSD-DP007_2026-07-05-01-49-30` → regex → `ZSD-DP007` |
@@ -209,15 +217,21 @@ echo "Rules: $(ros2 topic echo /zeron/cloud/rules --once 2>/dev/null | python3 -
 ros2 topic echo /rosout | grep -E "\[TRIGGER\]|\[UPLOAD\]|\[DiskManager\]|\[CLIP\]"
 
 # 云端运维
-kubectl logs -l app=zeron-upload-hub -n data-pipeline --tail 50  # hub 日志
-kubectl get workflows -n smartdrive | grep dataloop              # Argo 任务
+kubectl --kubeconfig ~/kube.conf -n data-pipeline logs -l app=zeron-upload-hub --tail 50
+kubectl --kubeconfig ~/kube.conf -n data-pipeline exec deploy/zeron-upload-hub -- python3 -c "import urllib.request; print(urllib.request.urlopen('http://localhost:5002/health').read())"
+kubectl --kubeconfig ~/kube.conf -n smartdrive get workflows | grep dataloop
 argo logs -n smartdrive @latest                                  # WF 日志
 
-# 重试失败触发
+# 手动触发 DAG（Dashboard 按钮等价操作）
 curl -X POST http://upload-hub/api/v1/tasks/{task_id}/retry
 
-# 从失败步骤恢复 Argo WF
-argo retry <workflow-name> -n smartdrive
+# zeron-upload-hub 部署
+cd zeron-upload-hub && bash scripts/deploy.sh 0.0.8             # build + push + ArgoCD
+cd zeron-upload-hub && bash scripts/deploy.sh 0.0.8 --sync      # 加手动触发 sync
+
+# orchestrator 部署
+cd data-preprocess-k8s/orchestrator && bash build.sh             # build + push 0.0.3
+# 然后更新 WF image tag 并 kubectl apply
 
 # 紧急降低水位
 export SNAP_DISK_HIGH_WATERMARK_PCT=70
@@ -233,10 +247,10 @@ ros2 launch snapshot_recorder recorder.launch.py --ros-args -p session_parent_di
 
 | 组件 | 路径 | 部署方式 |
 |------|------|---------|
-| orchestrator 镜像 | `data-preprocess-k8s/orchestrator/` | `build.sh` → Harbor |
+| orchestrator 镜像 | `data-preprocess-k8s/orchestrator/` | `build.sh` → Harbor, 手动更新 WF image tag |
 | Argo WorkflowTemplate | `data-preprocess-k8s/argo-data-preprocess/dataloop_bag_convert/` | `kubectl apply` |
 | ResourceQuota | `data-preprocess-k8s/argo-config/resourcequota-dataloop.yaml` | `kubectl apply` |
-| zeron-upload-hub | `zeron-upload-hub/` | `kubectl apply` deployment |
+| zeron-upload-hub | `zeron-upload-hub/` | `scripts/deploy.sh <tag>` → ArgoCD 自动同步 |
 
 ### 部署顺序
 
@@ -245,63 +259,56 @@ orchestrator 镜像 ──→ Argo WorkflowTemplate + ResourceQuota ──→ up
      (先)                         (中)                              (后)
 ```
 
-> **依赖**：WorkflowTemplate 引用 orchestrator 镜像 tag，必须先 push 镜像再 apply。upload-hub 无强依赖，但建议最后部署以便验证回调。
+> **依赖**：WorkflowTemplate 引用 orchestrator 镜像 tag，必须先 push 镜像再 apply。upload-hub 无强依赖。
 
 ### 1. 构建 & 推送 Orchestrator 镜像
 
 ```bash
 cd data-preprocess-k8s/orchestrator
-# 确认版本号（每次变更 +1）
-grep '^VERSION=' build.sh
-# 构建并推送（Mac 自动加 --platform linux/amd64）
-bash build.sh
+grep '^VERSION=' build.sh         # 确认版本号
+bash build.sh                      # 构建并推送（自动 --platform linux/amd64）
 ```
 
 > build 完成后会打印 sed 命令，用于批量更新 WorkflowTemplate 中的 image tag。
+> 示例: `sed -i 's|data-preprocess-orchestrator:[0-9.]*|data-preprocess-orchestrator:0.0.7|g'`
 
 ### 2. 应用 Argo 配置
 
 ```bash
-# WorkflowTemplate（确认 image tag 已更新为最新版本）
-kubectl apply -f data-preprocess-k8s/argo-data-preprocess/dataloop_bag_convert/workflowtemplate.yaml -n smartdrive
+# 确认 image tag 已更新
+grep 'orchestrator:' data-preprocess-k8s/argo-data-preprocess/dataloop_bag_convert/workflowtemplate.yaml
 
-# ResourceQuota（首次部署，后续跳过）
+kubectl apply -f data-preprocess-k8s/argo-data-preprocess/dataloop_bag_convert/workflowtemplate.yaml -n smartdrive
 kubectl apply -f data-preprocess-k8s/argo-config/resourcequota-dataloop.yaml -n smartdrive
 
 # 验证
 kubectl get workflowtemplate dataloop-bag-convert -n smartdrive
-kubectl get resourcequota dataloop-quota -n smartdrive
 ```
 
 ### 3. 部署 zeron-upload-hub
 
 ```bash
 cd zeron-upload-hub
-# 确认 image tag
-grep 'image:' k8s/deployment.yaml
-kubectl apply -f k8s/deployment.yaml -n data-pipeline
-kubectl rollout status deployment/zeron-upload-hub -n data-pipeline
+bash scripts/deploy.sh 0.0.8      # build + push + bump kustomization.yaml + git push → ArgoCD 自动同步
+# 或带手动触发 ArgoCD sync:
+bash scripts/deploy.sh 0.0.8 --sync
 ```
 
 ### 部署验证
 
 ```bash
-# 1. Hub 健康检查
-curl -s http://upload-hub/api/v1/health | python3 -m json.tool
+# 1. Pod 状态
+kubectl --kubeconfig ~/kube.conf -n data-pipeline get pods -l app=zeron-upload-hub
 
-# 2. Dashboard 可访问
-curl -s -o /dev/null -w "%{http_code}" http://upload-hub/dashboard
-# 期望: 200
+# 2. Hub 健康检查（pod 内）
+kubectl --kubeconfig ~/kube.conf -n data-pipeline exec deploy/zeron-upload-hub -- \
+  python3 -c "import urllib.request; print(urllib.request.urlopen('http://localhost:5002/health').read())"
 
-# 3. Argo WorkflowTemplate 可列出
-kubectl get workflowtemplate -n smartdrive | grep dataloop
+# 3. Argo WorkflowTemplate 已更新
+kubectl get workflowtemplate dataloop-bag-convert -n smartdrive -o jsonpath='{.spec.templates[*].container.image}'
 
 # 4. 端到端测试：手动触发一条任务
 curl -X POST http://upload-hub/api/v1/tasks/{task_id}/retry
-
-# 5. 观察 Argo Workflow 是否创建
-kubectl get workflows -n smartdrive | grep dataloop
-argo logs -n smartdrive @latest
 ```
 
 ## 参考文档
