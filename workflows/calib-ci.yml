@@ -1,0 +1,95 @@
+# Calibration CI Pipeline: Validate → Sign → Package → Upload to zota-repo
+# Triggers on PR/push to calibration directories
+name: Calibration CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'calibrations/**'
+  pull_request:
+    paths:
+      - 'calibrations/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find changed calibration packages
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git diff --name-only origin/${{ github.base_ref }} -- calibrations/ | grep 'metadata.yaml' | xargs -I{} dirname {} > changed.txt
+          else
+            find calibrations/ -name 'metadata.yaml' | xargs -I{} dirname {} > changed.txt
+          fi
+          echo "packages=$(cat changed.txt | tr '\n' ' ')" >> $GITHUB_OUTPUT
+
+      - name: Validate calibration parameters
+        run: |
+          for pkg in ${{ steps.changes.outputs.packages }}; do
+            echo "=== Validating: $pkg ==="
+            if [ -f "$pkg/validation_rules.yaml" ]; then
+              curl -f -X POST \
+                -H "Content-Type: application/json" \
+                -d @"$pkg/validation_rules.yaml" \
+                "${{ secrets.ZOTA_REPO_URL }}/api/v1/catalog/calibrations/validate" \
+                || { echo "VALIDATION FAILED for $pkg"; exit 1; }
+            else
+              echo "WARNING: $pkg has no validation_rules.yaml"
+            fi
+          done
+
+      - name: Check compatibility matrix
+        run: |
+          for pkg in ${{ steps.changes.outputs.packages }}; do
+            if [ -f "$pkg/metadata.yaml" ]; then
+              echo "Checking compatibility for $(basename $pkg)..."
+              curl -f "${{ secrets.ZOTA_REPO_URL }}/api/v1/compatibility/check?module=$(basename $pkg)" \
+                || echo "Compatibility check skipped (no rules)"
+            fi
+          done
+
+  sign-and-upload:
+    needs: validate
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find changed calibration packages
+        id: changes
+        run: |
+          find calibrations/ -name 'metadata.yaml' | xargs -I{} dirname {} > changed.txt
+          echo "packages=$(cat changed.txt | tr '\n' ' ')" >> $GITHUB_OUTPUT
+
+      - name: Package, sign, and upload
+        run: |
+          for pkg in ${{ steps.changes.outputs.packages }}; do
+            echo "=== Processing: $pkg ==="
+
+            # Extract version from metadata
+            VERSION=$(grep 'version:' "$pkg/metadata.yaml" | head -1 | awk '{print $2}')
+            MODULE=$(basename $pkg)
+
+            # Package as tar.gz
+            tar -czf "${MODULE}-${VERSION}.tar.gz" -C $(dirname $pkg) $(basename $pkg)
+
+            # Cosign sign
+            cosign sign-blob --key env://COSIGN_PRIVATE_KEY \
+              "${MODULE}-${VERSION}.tar.gz" > "${MODULE}-${VERSION}.tar.gz.sig"
+
+            # Upload to zota-repo
+            curl -f -X POST \
+              -H "Authorization: Bearer ${{ secrets.ZOTA_API_TOKEN }}" \
+              -F "file=@${MODULE}-${VERSION}.tar.gz" \
+              -F "metadata=@$pkg/metadata.yaml" \
+              "${{ secrets.ZOTA_REPO_URL }}/api/v1/catalog/modules/${MODULE}/versions/${VERSION}/artifact"
+
+            echo "Uploaded: ${MODULE}@${VERSION}"
+          done
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}

@@ -9,11 +9,60 @@
 
 | 工作流 | 触发条件 | 参与 Skills | 预计耗时 |
 |--------|---------|------------|---------|
-| [新功能开发](#workflow-1-新功能开发) | 接到新需求 | spec-generator → task-recipe → execution-governor → code-review → verify-feedback → pr-checklist | 1-3 天 |
-| [Bug 修复](#workflow-2-bug-修复) | 线上/测试发现 Bug | bug-hunting → spec-generator(delta) → execution-governor → verify-feedback → pr-checklist | 2-8 小时 |
-| [数据库变更](#workflow-3-数据库变更) | 修改 schema | spec-generator → db-migration → execution-governor → verify-feedback → pr-checklist | 1-4 小时 |
-| [安全重构](#workflow-4-安全重构) | 代码腐化需要整理 | safe-refactor → verify-feedback → code-review → pr-checklist | 4-16 小时 |
-| [依赖升级](#workflow-5-依赖升级) | 升级框架/库 | spec-generator(delta) → execution-governor → verify-feedback → pr-checklist | 2-8 小时 |
+| [新功能开发](#workflow-1-新功能开发) | 接到新需求 | analyze-design → spec-generator → design-patterns → task-recipe → execution-governor → code-review → verify-feedback → pr-checklist | 1-3 天 |
+| [快速迭代](#workflow-8-快速迭代) | 日常小功能 / 增强 | analyze-design → execution-governor → verify-feedback → pr-checklist | 1-4 小时 |
+| [新模块设计](#workflow-2-新模块设计) | 设计新模块/服务 | spec-generator → design-patterns → clean-code → execution-governor → pr-checklist | 4-8 小时 |
+| [Bug 修复](#workflow-3-bug-修复) | 线上/测试发现 Bug | bug-hunting → execution-governor → verify-feedback → pr-checklist | 2-8 小时 |
+| [代码审查（常规）](#workflow-4-代码审查) | PR review / 自检 | clean-code → code-review → verify-feedback | 30 分钟 |
+| [数据库变更](#workflow-5-数据库变更) | 修改 schema | db-migration → execution-governor → verify-feedback → pr-checklist | 1-4 小时 |
+| [安全重构](#workflow-6-安全重构) | 代码腐化需要整理 | safe-refactor → clean-code → code-review → verify-feedback → pr-checklist | 4-16 小时 |
+| [CI/CD 部署](#workflow-7-cicd-部署) | 准备上线部署 | devops-engineer → execution-governor → pr-checklist | 2-4 小时 |
+
+---
+
+## 快捷能力矩阵（一句话触发）
+
+> 在 Copilot Chat 中直接说这些短句，AI 会自动调用对应 skill。
+
+### 🎨 设计阶段
+
+| 你说 | AI 自动调用 | 输出 |
+|------|-----------|------|
+| "先分析下还缺什么" | `/analyze-design` | 分析报告 + 设计方案|
+| "这个页面内容是不是太少了" | `/analyze-design` | 分析 + 设计 + 待确认|
+| "帮我设计 XX 功能" | `/spec-generator` | proposal + specs + design + tasks |
+| "这个模块怎么架构比较好" | `/design-patterns` + `@architect` | 推荐模式 + 代码骨架 |
+| "拆解一下这个需求" | `/task-recipe` | INVEST 子任务 + 估时 |
+| "分析下这个方案的风险" | `@architect` | 模块边界 + 反模式识别 |
+
+### 💻 开发阶段
+
+| 你说 | AI 自动调用 | 输出 |
+|------|-----------|------|
+| "实现 Task X" | `/execution-governor` | TDD 循环: RED→GREEN→REFACTOR |
+| "这段代码写得怎么样" | `/code-review` | 五维度问题清单 |
+| "代码写得不太对劲" | `/clean-code` + `/code-review` | 命名/函数/注释/错误处理建议 |
+| "这个类太大了，拆一下" | `/safe-refactor` | 五步重构 + 行为不变 |
+| "这个 SQL 怎么安全上线" | `/db-migration` | UP/DOWN 脚本 + 回滚方案 |
+| "帮我写个 Dockerfile" | `/devops-engineer` | Dockerfile + compose + K8s |
+
+### 🧪 测试阶段
+
+| 你说 | AI 自动调用 | 输出 |
+|------|-----------|------|
+| "帮我设计测试用例" | `@test-strategist` | 测试矩阵 + GWT 用例 |
+| "跑一下验证" | `/verify-feedback` | 类型→Lint→单元→集成→启动 |
+| "这个 Bug 怎么回事" | `/bug-hunting` | 五步定位 + 根因分析 |
+
+### 🚀 交付阶段
+
+| 你说 | AI 自动调用 | 输出 |
+|------|-----------|------|
+| "准备提交了" | `/pr-checklist` | 质量门 + PR 模板 |
+| "部署上线" | `/devops-engineer` + `/pr-checklist` | Pipeline + 蓝绿策略 |
+| "服务挂了怎么办" | `/ops-playbook` | 监控 + 日志 + 灾备 |
+
+---
 
 ---
 
@@ -68,9 +117,39 @@ Phase 3: Loop（闭环）
 - 如果 Rewind Trigger 触发 → 暂停，人工评估后决定继续或回滚
 - 如果 Review Gate 失败 → 修复后重新进入该 Gate
 
----
+## Workflow 2: 新模块设计
 
-## Workflow 2: Bug 修复
+### 适用场景
+- 新建一个 Go package / Python module
+- 需要设计 API 和数据模型
+- 跨服务集成设计（如 zota-repo ↔ zota-server）
+
+### 完整流程
+
+```
+Phase 1: 规格
+  /spec-generator "新模块描述"
+    → 明确输入输出、成功标准、边界条件
+    ↓
+Phase 2: 设计
+  /design-patterns "选择合适的架构模式"
+    → Repository? Adapter? Strategy?
+    → 画依赖关系图
+    ↓
+Phase 3: 编码
+  /clean-code "按整洁代码规范实现"
+    → 命名清晰、函数短小
+    → 接口隔离、依赖反转
+    ↓
+Phase 4: 验证
+  /execution-governor "执行 TDD"
+    → 先写测试 → 实现 → 重构
+    ↓
+Phase 5: 交付
+  /pr-checklist "提交模块"
+```
+
+---
 
 ### 适用场景
 - 线上用户报告的问题
@@ -113,7 +192,7 @@ Phase 5: 交付
 
 ---
 
-## Workflow 3: 数据库变更
+## Workflow 5: 数据库变更
 
 ### 适用场景
 - 新增表、修改列
@@ -158,7 +237,7 @@ Phase 5: 交付
 
 ---
 
-## Workflow 4: 安全重构
+## Workflow 6: 安全重构
 
 ### 适用场景
 - 函数太长需要拆分
@@ -198,36 +277,43 @@ Phase 4: 交付
 
 ---
 
-## Workflow 5: 依赖升级
+## Workflow 8: 快速迭代（分析→设计→编码）
 
 ### 适用场景
-- Python 包升级
-- npm 包升级
-- Maven 依赖升级
-- Spring Boot 版本升级
+- 日常小功能、页面增强、组件升级
+- 用户说 "先分析下" / "还缺什么" / "内容太少了"
+- 不涉及架构变更、不涉及数据库变更
 
 ### 完整流程
 
 ```
-Phase 1: 规划
-  /spec-generator(delta) "升级 <包名> 从 <旧版> 到 <新版>"
-    → 查 CHANGELOG，列 Breaking Changes
-    → Delta Spec: MODIFIED 记录 API 变更
+Phase 1: 分析
+  /analyze-design "分析现状+差距"
+    → 读现有代码、API、数据结构
+    → 输出：现状 + 差距 + 可行性 + 风险
     ↓
-Phase 2: 执行
-  /execution-governor "执行升级"
-    → 更新 requirements.txt / package.json / pom.xml
-    → TDD: 先跑现有测试
-    → 逐个修复 Breaking Changes
+Phase 2: 设计
+  /analyze-design "设计方案"
+    → 改动清单 + 数据流 + P0/P1/P2 优先级
+    → 等用户确认
     ↓
-Phase 3: 验证
-  /verify-feedback "验证升级"
-    → 全量测试
-    → 启动验证
+Phase 3: 编码
+  /execution-governor "执行实现"
+    → 先写测试 → 实现 → 重构
     ↓
-Phase 4: 交付
-  /pr-checklist "提交升级"
+Phase 4: 验证
+  /verify-feedback "验证改动"
+    → 类型检查 → 测试 → 构建
+    ↓
+Phase 5: 交付
+  /pr-checklist "提交"
 ```
+
+### 退出条件
+- [ ] 用户已确认设计方案
+- [ ] P0 项全部完成
+- [ ] 无类型错误、无测试回归
+- [ ] 页面可正常交互
 
 ---
 
@@ -236,43 +322,31 @@ Phase 4: 交付
 ```
 收到任务
   │
-  ├─ 是新功能？
-  │   └─ 是 → Workflow 1: 新功能开发
-  │
-  ├─ 是 Bug？
-  │   └─ 是 → Workflow 2: Bug 修复
-  │
-  ├─ 涉及数据库？
-  │   └─ 是 → Workflow 3: 数据库变更
-  │
-  ├─ 是重构（不改行为）？
-  │   └─ 是 → Workflow 4: 安全重构
-  │
-  ├─ 是升级依赖？
-  │   └─ 是 → Workflow 5: 依赖升级
-  │
-  └─ 不确定？
-      └─ 先用 /spec-generator 理清需求
+  ├─ 是新功能？     → Workflow 1: 新功能开发
+  ├─ 是新模块？     → Workflow 2: 新模块设计
+  ├─ 是 Bug？      → Workflow 3: Bug 修复
+  ├─ 是代码审查？    → Workflow 4: 代码审查
+  ├─ 涉及数据库？    → Workflow 5: 数据库变更
+  ├─ 是重构？       → Workflow 6: 安全重构
+  ├─ 需要部署？     → Workflow 7: CI/CD 部署
+  └─ 不确定？       → 先用 /spec-generator 理清需求
 ```
 
 ---
 
 ## 跨工作流衔接
 
-### 当一个工作流触发另一个时
-
 ```
+Workflow 1 (新功能) 中发现需要设计模式指导:
+  → 暂停当前 Task → 进入 Workflow 2 Phase 2 → 回原 Task
+
 Workflow 1 (新功能) 中触发数据库变更:
-  → 暂停当前 Task
-  → 进入 Workflow 3 (数据库变更)
-  → 完成后回到原 Task 继续
+  → 暂停当前 Task → 进入 Workflow 5 → 回原 Task
 
-Workflow 2 (Bug修复) 中发现需要重构:
-  → 先完成最小修复
-  → 提交 Bug 修复 PR
-  → 另开分支进入 Workflow 4 (安全重构)
+Workflow 3 (Bug修复) 中发现需要重构:
+  → 先最小修复 → 提交 Bug PR → 另开分支 Workflow 6
 
-Workflow 4 (重构) 中引入新功能诱惑:
+Workflow 6 (重构) 中引入新功能诱惑:
   → 严格拒绝：重构就是重构，不改行为
   → 新功能单独走 Workflow 1
 ```

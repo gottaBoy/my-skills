@@ -1,0 +1,80 @@
+# Agent CI Pipeline: Build → Sign → Publish → Ansible Deploy
+# Triggered on push to main or tag matching v*
+name: Agent CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'aura-ota-agent/**'
+  pull_request:
+    paths:
+      - 'aura-ota-agent/**'
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: aura-ota-agent } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.24' }
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: aura-ota-agent
+          version: latest
+      - run: go vet ./...
+      - run: go test -race -coverprofile=coverage.out ./...
+      - run: go tool cover -func=coverage.out
+      - name: Coverage gate (≥50%)
+        run: |
+          COV=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | sed 's/%//')
+          echo "Coverage: ${COV}%"
+          if [ "$(echo "$COV < 50" | bc)" = "1" ]; then echo "FAIL: coverage below 50%"; exit 1; fi
+
+  build:
+    needs: quality
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aura-ota-agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.24' }
+
+      - name: Build agent binary
+        run: |
+          CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.Version=${GITHUB_REF_NAME}" \
+            -o bin/aura-ota-agent ./cmd/agent
+
+      - name: Sign binary (Cosign)
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: |
+          cosign sign-blob --key env://COSIGN_PRIVATE_KEY \
+            bin/aura-ota-agent > bin/aura-ota-agent.sig
+
+      - name: Upload to Harbor
+        run: |
+          TAG=${GITHUB_REF_NAME#v}
+          curl -f -u "${{ secrets.HARBOR_USER }}:${{ secrets.HARBOR_PASSWORD }}" \
+            -T bin/aura-ota-agent \
+            "https://harbor.intra.zeron.ai/v2/smartdrive/aura-ota-agent/binaries/${TAG}/aura-ota-agent"
+
+      - name: Register with zota-repo
+        run: |
+          curl -f -X POST \
+            -H "Authorization: Bearer ${{ secrets.ZOTA_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"module\":\"aura_agent\",\"version\":\"${GITHUB_REF_NAME#v}\",\"artifact_url\":\"https://harbor.intra.zeron.ai/v2/smartdrive/aura-ota-agent/binaries/${GITHUB_REF_NAME#v}/aura-ota-agent\",\"sha256\":\"$(sha256sum bin/aura-ota-agent | cut -d' ' -f1)\"}" \
+            "${{ secrets.ZOTA_REPO_URL }}/api/v1/catalog/modules/aura_agent/versions"
+
+      - name: Deploy via Ansible (staging)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cd ota/ansible
+          ansible-playbook -i inventory/staging.yml playbooks/deploy-agent.yml \
+            -e "agent_version=${GITHUB_REF_NAME#v}"

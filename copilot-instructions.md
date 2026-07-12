@@ -76,6 +76,8 @@ This project uses a Karpathy-inspired Skills system with the **Spec→Harness→
 ### Harness 层（执行）
 - `execution-governor` — TDD 铁律 + Scope Fence + Review Gates + Rewind Triggers
 - `code-review` — 五维度代码审查（安全/正确/可维护/性能/测试）
+- `clean-code` — 代码整洁之道（命名/函数/注释/格式/错误处理/边界）
+- `design-patterns` — 设计模式参考（创建型/结构型/行为型 + 反模式警示）
 - `verify-feedback` — 五层验证金字塔（类型→Lint→单元→集成→E2E）
 - `bug-hunting` — 五步系统化 Bug 定位
 - `devops-engineer` — CI/CD Pipeline 模板 + Dockerfile + 部署策略
@@ -88,9 +90,11 @@ This project uses a Karpathy-inspired Skills system with the **Spec→Harness→
 
 ### Domain Skills（领域知识）
 - `data-loop` — 数据闭环管道专家：snapshot_recorder 全链路架构、故障排查、优化方案
+- `zota` — ZOTA OTA 平台专家：HawkBit(zota-server) + aura-ota-agent + zota-cli 全链路架构、故障排查、演进方案
 
 ### Custom Agents（角色分工）
 - `@architect` — 架构审查（只读）：模块边界、依赖方向、非功能需求
+- `@zota-architect` — ZOTA 架构审查（只读）：OTA 更新模式、诊断通道安全、标定版本管理
 - `@ui-designer` — UI 审查（只读）：a11y、响应式、组件一致性、状态覆盖
 - `@test-strategist` — 测试策略（可运行测试）：覆盖率分析、测试矩阵、GWT 用例
 
@@ -114,9 +118,11 @@ This project uses a Karpathy-inspired Skills system with the **Spec→Harness→
 新功能:   /spec-generator → @architect → /execution-governor → @test-strategist → @ui-designer → /pr-checklist
 Bug修复:  /bug-hunting → /execution-governor → /verify-feedback → /pr-checklist
 数据库:   /db-migration → /verify-feedback → /pr-checklist
-重构:     /safe-refactor → /code-review → /pr-checklist
+重构:     /safe-refactor → /clean-code → /code-review → /pr-checklist
+新模块:   /spec-generator → /design-patterns → /execution-governor → /pr-checklist
 CI/CD:    /devops-engineer → /verify-feedback → /pr-checklist
 运维:     /ops-playbook → @architect (复盘)
 数据闭环:  /data-loop → /bug-hunting（排障）→ /pr-checklist
+OTA/诊断:  /zota → @zota-architect → /execution-governor → /pr-checklist
 自动循环:  CI Triage (/loop) → ci-fixer → code-reviewer → PR → STATE.md
 ```

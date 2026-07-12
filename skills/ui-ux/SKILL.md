@@ -198,6 +198,88 @@ return data.map(renderRow).join('');
 | 全部同字号无层次 | 标题/正文/辅助三级字号 |
 | 内容截断不提示 | 加 `title` 属性或 tooltip |
 | 无 hover 反馈 | `transition: background .15s` |
+
+---
+
+## 9. 乘用车对标设计模式 (Automotive Benchmarking)
+
+> 参考：Tesla OTA Platform、Bosch ESI[tronic]、Xiaomi 车机管理后台、UN R156 合规要求
+
+### 9.1 行业设计标杆对比
+
+| 特性 | Tesla 风格 | Bosch ESI[tronic] | Xiaomi 风格 | zota-repo 采用 |
+|------|-----------|-------------------|------------|---------------|
+| **整体风格** | 极简、深色主导、高对比 | 专业工业、信息密集、功能优先 | 清爽现代、卡片化、圆角 | **Glass morphism 深色 + 数据驱动** |
+| **Dashboard** | 3D 车辆模型 + 状态概览 | 多面板网格，表格为主 | 大数字卡片 + 趋势迷你图 | StatCard 4 栏 + StatusRing |
+| **导航** | 侧边栏图标化、层级浅 | 顶部 Tab + 侧边树形菜单 | 侧边栏图标 + 文字 | 侧边 8 项 icon+label |
+| **数据展示** | 大字体关键指标 + 颜色编码 | 密集表格 + 筛选面板 | 图表为主 + 卡片摘要 | 表格 + 卡片混合 |
+| **操作反馈** | Toast 顶部居中 | Modal 确认 + 状态列 | 行内操作 + 轻提示 | Popconfirm + message |
+
+### 9.2 设计系统生成提示词（ui-ux-pro-max 风格）
+
+对于新页面设计，使用以下提示词获取设计系统：
+
+```bash
+# Dashboard 设计系统
+python3 scripts/search.py "fleet management dashboard automotive dark mode glass" --design-system -p "Fleet OS"
+
+# 版本管理页面
+python3 scripts/search.py "version control lifecycle management professional industrial" --design-system -p "Version Catalog"
+
+# 数据表格设计
+python3 scripts/search.py "data table dense information professional monitoring" --design-system -p "Data Grid"
+```
+
+### 9.3 汽车行业专用 UX 规则
+
+| 规则 | 来源 | 实现 |
+|------|------|------|
+| **状态颜色编码** | Tesla | 🟢 已同步/生产 → `#52c41a`, 🟡 漂移/验证中 → `#faad14`, 🔴 已撤销/严重漂移 → `#ff4d4f` |
+| **版本号格式** | Bosch | SemVer `主.次.补丁[-标签]`, 如 `4.1.0-rc1`, `2025.06` |
+| **操作确认** | UN R156 | 所有不可逆操作（promote/release/revoke）MUST 二次确认 + 审计记录 |
+| **数据密度** | Bosch | 默认每页 20-50 行，支持 10/20/50/100 切换 |
+| **实时刷新** | Tesla | 漂移检测 30s 自动刷新，其他页面手动刷新 |
+| **搜索优先** | Xiaomi | 全局搜索框置于顶部，支持 VIN/模块名/版本号模糊匹配 |
+| **批量操作** | Bosch | 勾选多行 → 底部批量操作栏出现（批量 promote/sync） |
+| **导出能力** | Bosch | 所有表格支持 CSV/PDF 导出 |
+
+### 9.4 新增页面设计模板
+
+当需要新增页面时，按以下模板生成：
+
+```
+1. [PageHeader] 标题 + 副标题 + 主操作按钮
+2. [StatRow]    4 个 StatCard（如适用）
+3. [FilterBar]  搜索框 + 状态筛选 + 日期范围
+4. [MainContent] 表格 或 卡片网格
+5. [DetailPanel] 点击行展开的详情抽屉/面板
+```
+
+### 9.5 交付前自检清单（对标 ui-ux-pro-max Pre-Delivery）
+
+**视觉质量：**
+- [ ] 间距使用 4px 基准系统（4/8/16/24/32）
+- [ ] 颜色对比度 WCAG AA（正文 4.5:1+, 大文字 3:1+）
+- [ ] Dark/Light 双模式一致渲染
+- [ ] 无水平溢出（表格用 `overflow-x: auto`）
+
+**交互：**
+- [ ] 所有按钮有 hover/active/disabled 三态
+- [ ] 加载状态有 Skeleton 或 Spinner
+- [ ] 空状态有图标 + 引导文案 + CTA
+- [ ] 错误状态有友好提示 + 重试按钮
+- [ ] 不可逆操作有二次确认
+
+**可访问性：**
+- [ ] Tab 键可达所有交互元素
+- [ ] `:focus-visible` 焦点环可见
+- [ ] 颜色不是唯一的信息传达方式
+- [ ] 表格有正确的 `aria-label`
+
+**性能：**
+- [ ] 表格默认分页（不一次加载全部）
+- [ ] 自动刷新页面设置合理间隔（≥15s）
+- [ ] 大列表使用虚拟滚动（>1000 行）
 | 无 loading/empty/error 态 | 四态覆盖 |
 | 不可复制的关键信息 | `user-select: all` + 点击复制 |
 
