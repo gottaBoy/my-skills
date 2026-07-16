@@ -1,0 +1,17 @@
+# PriorityClass: ZOTA services are production-critical.
+# zota-server > zota-repo > zota-repo-web (frontend least critical)
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: zota-critical
+value: 1000000
+globalDefault: false
+description: "ZOTA core services — preempted only by system-cluster-critical"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: zota-high
+value: 100000
+globalDefault: false
+description: "ZOTA supporting services — preempted before batch/jobs"

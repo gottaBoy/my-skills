@@ -1,0 +1,18 @@
+# ResourceQuota: prevent runaway resource consumption in zota namespace.
+# All ZOTA workloads combined must fit within these bounds.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: zota-quota
+  namespace: zota
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: "4Gi"
+    limits.cpu: "8"
+    limits.memory: "8Gi"
+    persistentvolumeclaims: "3"
+    pods: "20"
+    services: "8"
+    secrets: "15"
+    configmaps: "10"

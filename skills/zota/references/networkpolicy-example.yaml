@@ -1,0 +1,37 @@
+# NetworkPolicy: zota-repo pod traffic rules.
+# Ingress: only from nginx-ingress. Egress: DNS + cluster-internal only.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zota-repo
+  namespace: zota
+spec:
+  podSelector:
+    matchLabels:
+      app: zota-repo
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    # Internal services (postgres, zota-server, S3/TOS via DNS)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 8090

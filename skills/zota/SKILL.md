@@ -224,6 +224,7 @@ Vault PKI ──→ zota-server ──→ zota-web
 
 ## 参考文档
 
+- [k8s-best-practices.md](references/k8s-best-practices.md) — K8s 部署最佳实践（安全/可维护/高效 + 检查清单）
 - [gap-analysis.md](references/gap-analysis.md) — L4 量产就绪全面差距分析（P0/P1/P2 + 路线图 + 风险）
 - [roadmap.md](references/roadmap.md) — 量产 L4 全能力交付路线图（5 Phase + 质量门）
 - [spec-done-review.md](references/spec-done-review.md) — Spec Done 自检报告（GWT 覆盖 + Non-Goals + ADR 间隙）
