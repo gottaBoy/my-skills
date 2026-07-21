@@ -43,7 +43,7 @@ flowchart TB
 
     subgraph Factory["🏭 产线"]
         ZOTA_CLI_PROV["zota-cli provision<br/>签发证书 + USB 配置盘"]
-        EOL["zota-cli eol<br/>EOL 电检"]
+        ZEOL["zeol<br/>EOL 电检 (Web UI)"]
     end
 
     subgraph Vehicle["🚗 车辆 (Production Grade)"]
@@ -65,7 +65,8 @@ flowchart TB
     MQTT -->|"诊断命令 (HMAC)"| AGENT
     AGENT -->|"Metrics"| METRICS
     ZOTA_CLI_PROV -->|"USB 配置盘"| CERTS
-    EOL -->|"检测报告"| AGENT
+    ZEOL -->|"检测报告"| AGENT
+    ZEOL -->|"SSH 检测"| AGENT
 ```
 
 ## 关键文件
@@ -90,6 +91,19 @@ flowchart TB
 | `zota-web/src/features/` | 管理 UI | Dashboard / Targets / Distributions / Rollouts |
 | `ota/scripts/build-sign-publish.sh` | 镜像构建→签名→注册 zota-server | 自动创建 SM Type 和 Module |
 | `zota-repo/` | 软件版本管理平台 | 版本目录、兼容矩阵、硬件清单、漂移检测 |
+| `zeol/` | EOL 电检工具 (Go + React) | Web UI + SSH 连接池 + 17 checker + Pipeline 引擎 + SQLite + 远程加载 + 操作员身份 + 审计日志 |
+| `zeol/internal/report/store.go` | SQLite 存储：报告 + 审计日志双表 | WAL 模式，报告 + audit_logs 同库 |
+| `zeol/internal/server/server.go` | HTTP API：操作员 PIN 认证 + 会话管理 + 审计 + metrics | `POST /api/auth/login` (PIN验证) + `GET /api/metrics` (Prometheus) |
+| `zeol/internal/cli/operator.go` | `zeol operator add/list/remove` 操作员管理 | PIN 通过 SHA-256 哈希存储 |
+| `zeol/internal/report/store.go` | SQLite：报告 + 审计 + 操作员三表 | operators 表存 pin_hash，VerifyOperator 验证 |
+| `zeol/internal/pipeline/loader.go` | Pipeline 加载器，版本兼容校验 | `min_zeol_version` 不满足则拒绝加载 |
+| `zeol/internal/pipeline/remote.go` | 远程 Pipeline 加载 (zota-repo API) | 网络不可用时降级到本地 pipelines/ |
+| `zeol/internal/checker/ssh_pool.go` | SSH 连接池 + 自动重连 | 断线自动重连 3 次，指数退避 |
+| `zeol/internal/checker/registry.go` | Checker 注册表，未知类型优雅降级 | 未知 checker → skipped（不阻塞 pipeline） |
+| `zeol/internal/cli/version.go` | `zeol version --check` 版本检查 | 对比 zota-repo 最新版本 |
+| `zeol/internal/cli/reload.go` | `zeol reload` 列出远程 pipeline | 显示各 pipeline 兼容性 |
+| `aura/src/ztd/ztd_network/ztd_rtsp/src/vehicle/rtsp_stream.cpp` | RTSP Server：appsrc→NVENC→rtph264pay | gop-size 需 probe 设置，NVENC 不认 key-int-max |
+| `aura/src/ztd/ztd_network/ztd_rtsp/src/vehicle/push_node.cpp` | TRRO 推流：rtspsrc→appsink→TRRO SDK | GStreamer 1.16 无法发 RTCP PLI，降级为 IDR 缓存重发 |
 
 ## 当前能力矩阵（代码实际状态 / 生产目标）
 
@@ -102,14 +116,15 @@ flowchart TB
 | **PKI 证书 Bootstrap** | ✅ 完成 | `aura-ota-agent/internal/bootstrap/` | Vault 直连 + zota-server 代理双模式 |
 | **证书管理 (CLI)** | ✅ 完成 | `zota-cli/internal/cli/cert.go` | 签发/查询/续期/吊销 + fleet-registry |
 | **产线 USB 配置盘** | ✅ 完成 | `zota-cli/internal/cli/provision.go` | online/offline/auto-issue |
-| **EOL 电检 (本地)** | ✅ 完成 | `zota-cli/internal/eol/` | 8 种检测类型 |
+| **EOL 电检 (CLI)** | ✅ 完成 | `zota-cli/internal/eol/` | 8 种检测类型 |
+| **EOL 电检 (zeol)** | ✅ 完成 | `zeol/` | Web UI + 17 checker + Pipeline + SQLite + sync + 远程加载 + SSH自动重连 + 版本兼容 + 操作员身份 + 审计日志 |
 | **多模块管理** | ✅ 完成 | `zota-cli update --config a,b,c` | 批量单次升级 |
 | **暂停/恢复/回滚** | ✅ 完成 | `zota-cli pause/resume/rollback` | 运维友好 |
 | **zota-server 管理 UI** | ✅ 完成 | `zota-web/` | Dashboard/Targets/Rollouts |
 | **SWUpdate A/B 分区** | ✅ 代码 | `internal/swupdate/` | 断电保护 + bootloader 3次回退 (待实车) |
 | **MCU UDS 刷写** | ✅ 代码 | `internal/mcu/` | CAN 总线 + 双 Bank 保护 (待硬件) |
 | **Agent 自升级** | ✅ 代码 | `internal/selfupgrade/` | 原子替换 + systemd 恢复 |
-| **远程诊断平台** | ✅ 代码 | `internal/diag/` | MQTT + HMAC + 10命令白名单 (6/10 实现) |
+| **远程诊断平台** | ✅ 完成 | `internal/diag/` | MQTT + HMAC + 11命令白名单 (11/11 实现) |
 | **Pre-flight 检查** | ✅ 完成 | `internal/preflight/` | 磁盘/电池/车辆状态/更新互斥锁 |
 | **标定版本上报** | ✅ 完成 | `internal/calibration/` | DDI configData 自动上报 |
 | **Prometheus Metrics** | ✅ 完成 | `internal/metrics/` | 成功率/延迟/预检失败/证书到期 |
@@ -137,6 +152,9 @@ flowchart TB
 9. **Agent 常驻 + CLI 按需**：`aura-ota-agent` 后台持续轮询，`zota-cli` 按需手动操作
 10. **可观测性**：Prometheus metrics + 告警 + 审计日志（满足 ISO 21434）
 11. **zota-repo 只读 zota-server MGMT API**：zota-repo 不与车端直连。车辆通过 DDI configData 上报实际版本到 zota-server 属性，zota-repo 通过 MGMT API 只读查询 target attributes（实际状态）和 assigned DS（预期状态），计算漂移。车端唯一入口是 zota-server DDI。
+12. **zeol Pipeline 版本兼容**：Pipeline YAML 声明 `min_zeol_version`，加载时版本不满足 → 拒绝加载。未知 checker 类型 → 标记 skipped（不阻塞 pipeline），确保 YAML 更新不破坏旧二进制。
+13. **zeol 操作员 PIN 认证 + 滑动会话**：产线员工用工号+PIN登录。PIN SHA-256 哈希存储。会话滑动过期（30分钟无操作自动登出，每次 API 调用自动续期，12小时绝对上限）。所有操作记录审计日志。主管 `zeol operator add/remove` 管理操作员。zeol 不需要 Casdoor——台架单机工具，离线优先。
+14. **zota-repo 接入 Casdoor**（规划中）：zota-repo 是云端多角色服务（工程师/发布经理/管理员），需要 OAuth2/OIDC + RBAC + SSO。Casdoor 提供统一身份管理。
 
 ## 配置速查
 
@@ -180,9 +198,28 @@ zota-cli run --configs-dir /etc/zota-cli/configs
 
 # ── 产线 ──
 
-# EOL 检测
+# EOL 检测（本地 pipeline）
 zota-cli eol --vin TEST001 --config configs/eol.example.yaml --mock
 zota-cli eol --vin MYVIN --config /etc/zota-cli/eol.yaml --json
+
+# EOL 检测（zeol Web UI + 远程 pipeline）
+zeol run --port 9101 --host 0.0.0.0                  # 启动 Web UI
+zeol eol --vin ZSD001 --pipeline pipelines/factory-full.yaml
+
+# zeol 运维
+zeol version --check                                   # 检查新版本
+zeol reload --server https://zota-repo.intra.zeron.ai # 查看远程 pipeline 兼容性
+zeol sync                                              # 同步报告到 zota-repo
+
+# zeol 操作员管理（主管执行，一次性初始化）
+zeol operator add --id OP001 --name 张三 --pin 123456
+zeol operator add --id SV001 --name 李四 --pin 654321 --role supervisor
+zeol operator list
+zeol operator remove --id OP001
+
+# zeol 审计（查询操作记录）
+curl http://localhost:9101/api/audit/logs               # 全部审计日志
+curl "http://localhost:9101/api/audit/logs?operator_id=OP001"  # 按操作员过滤
 
 # USB 配置盘
 zota-cli provision --vin MYVIN --auto-issue
@@ -236,4 +273,5 @@ Vault PKI ──→ zota-server ──→ zota-web
 - [project-report.md](references/project-report.md) — 项目汇报（里程碑/风险/进度）
 - [architecture-evolution.md](references/architecture-evolution.md) — 架构演进（ADR/DB Schema/Roadmap）
 - [ux-conventions.md](references/ux-conventions.md) — UX 设计规范（页面布局/统计区/表单/颜色/状态覆盖）
+- [gstreamer-rtcp-limitation.md](references/gstreamer-rtcp-limitation.md) — GStreamer 1.16 rtspsrc keyframe 请求限制与升级路径
 - [LOOP.md](LOOP.md) — ZOTA 运行态 Loop 协调 + 碰撞检测
