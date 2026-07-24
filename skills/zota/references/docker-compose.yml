@@ -1,0 +1,87 @@
+# ZOTA 三系统联合部署 — zota-repo + zota-server + RabbitMQ (DMF)
+# JetLinks 单独部署，通过 RabbitMQ 与 zota-server DMF 通信
+#
+# 启动: docker compose up -d
+# 停止: docker compose down
+
+services:
+  # ── PostgreSQL (共享实例，独立数据库) ─────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: zota_repo
+      POSTGRES_USER: zota
+      POSTGRES_PASSWORD: zota-repo-pwd
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zota -d zota_repo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── RabbitMQ (DMF 消息总线) ────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── zota-server ──────────────────────────────────────────────
+  zota-server:
+    image: hawkbit/hawkbit-update-server:0.6.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8090:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/zota_server
+      SPRING_DATASOURCE_USERNAME: zota
+      SPRING_DATASOURCE_PASSWORD: zota-repo-pwd
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: "5672"
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      HAWKBIT_DMF_RABBITMQ_ENABLED: "true"
+      HAWKBIT_DMF_ENABLED: "true"
+      HAWKBIT_SERVER_DDI_SECURITY_AUTHENTICATION_TARGETTOKEN_ENABLED: "true"
+      HAWKBIT_SERVER_DDI_SECURITY_AUTHENTICATION_GATEWAYTOKEN_ENABLED: "true"
+      HAWKBIT_SECURITY_USER_ADMIN_PASSWORD: admin
+
+  # ── zota-repo (Go 版本管理平台) ──────────────────────────────────
+  zota-repo:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      ZOTA_SERVER_PORT: "8080"
+      ZOTA_DB_DRIVER: postgres
+      ZOTA_DB_DSN: postgres://zota:zota-repo-pwd@postgres:5432/zota_repo?sslmode=disable
+      ZOTA_ZS_URL: http://zota-server:8080
+      ZOTA_ZS_USERNAME: admin
+      ZOTA_ZS_PASSWORD: admin
+      ZOTA_API_TOKEN: "${ZOTA_API_TOKEN:-}"
+    volumes:
+      - artifacts:/data/artifacts
+      - files:/data/files
+
+volumes:
+  pg_data:
+  artifacts:
+  files:
