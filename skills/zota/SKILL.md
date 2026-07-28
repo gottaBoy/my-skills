@@ -90,7 +90,12 @@ flowchart TB
 | `hawkbit/hawkbit-monolith/.../application.properties` | zota-server 服务端配置 | DDI token auth + gateway token 双模式 |
 | `zota-web/src/features/` | 管理 UI | Dashboard / Targets / Distributions / Rollouts |
 | `ota/scripts/build-sign-publish.sh` | 镜像构建→签名→注册 zota-server | 自动创建 SM Type 和 Module |
-| `zota-repo/` | 软件版本管理平台 | 版本目录、兼容矩阵、硬件清单、漂移检测 |
+| `zota-repo/internal/zotaserver/client.go` | zota-server MGMT API 客户端（读+写） | GET 读 + POST 写（SM/DS/Rollout/Artifact） |
+| `zota-repo/internal/zotaserver/write.go` | zota-server 写操作：SM/DS/Rollout/Artifact/AssignDS | GetOrCreateSM + UploadArtifact + CreateDS + StartRollout + AssignDistributionSet |
+| `zota-repo/internal/deploy/handler.go` | 一键下发 + 标定下发 → zota-server | POST /api/v1/deploy (产品批量) + /deploy/calibration (per-VIN) |
+| `jetlinks-community/.../VehicleSyncListener.java` | ziot 设备 → zota-server 属性同步 | ⚠️ 属性 key 用 camelCase: productId, internalCode |
+| `aura-ota-agent/internal/upgrader/manifest.go` | 🔨 upgrade.yaml 解析（新建） | YAML 清单 → 多模块升级编排 |
+| `aura-ota-agent/internal/upgrader/orchestrator.go` | 🔨 升级编排器（新建） | docker pull + file download → stop → start → health → rollback |
 | `zeol/` | EOL 电检工具 (Go + React) | Web UI + SSH 连接池 + 17 checker + Pipeline 引擎 + SQLite + 远程加载 + 操作员身份 + 审计日志 |
 | `zeol/internal/report/store.go` | SQLite 存储：报告 + 审计日志双表 | WAL 模式，报告 + audit_logs 同库 |
 | `zeol/internal/server/server.go` | HTTP API：操作员 PIN 认证 + 会话管理 + 审计 + metrics | `POST /api/auth/login` (PIN验证) + `GET /api/metrics` (Prometheus) |
@@ -128,7 +133,7 @@ flowchart TB
 | **Pre-flight 检查** | ✅ 完成 | `internal/preflight/` | 磁盘/电池/车辆状态/更新互斥锁 |
 | **标定版本上报** | ✅ 完成 | `internal/calibration/` | DDI configData 自动上报 |
 | **Prometheus Metrics** | ✅ 完成 | `internal/metrics/` | 成功率/延迟/预检失败/证书到期 |
-| **zota-repo 平台** | ✅ 完成 | `zota-repo/` | 77 API + 14 UI feature + K8s manifests |
+| **zota-repo 平台** | ✅ 完成 | `zota-repo/` | 79 API + 14 UI feature + K8s manifests |
 | **zota-repo UI (React)** | ✅ 完成 | `zota-repo/web/` | Ant Design 6 + React 19 + TypeScript |
 | **JetLinks 集成** | ✅ 代码 | `jetlinks-community/.../zota-integration/` | DMF → 设备属性更新 |
 | **K8s 部署 (ArgoCD)** | ✅ 完成 | `cicd/argocd/` | 4 Applications + sync-wave |
@@ -137,7 +142,8 @@ flowchart TB
 | **安全合规文档** | ✅ 完成 | `doc/security/` | ISO 21434 + GB/T 32960 + UN R156/R155 |
 | **RAUC 支持** | 🔮 预留 | `MultiModeHandler` 接口 | 备选方案 |
 | **zota-server 集群 HA** | 🔮 Phase 1 | K8s Deployment + PG HA | 3副本 (待生产集群) |
-| **实车验证** | ⬜ Phase 1 | SWUpdate/UDS/CAN 端到端 | 需硬件 |
+| **zota-repo → zota-server 下发** | ✅ 完成 | `zota-repo/internal/deploy/` | POST /api/v1/deploy → 6 步全自动（SM → Artifact → DS → Rollout → Start） |
+| **aura-configs 升级** | 🔨 设计中 | `aura-ota-agent/internal/upgrader/` | upgrade.yaml 清单驱动多模块升级 |
 
 ## 核心设计原则
 
@@ -151,7 +157,101 @@ flowchart TB
 8. **离线韧性**：车辆离线 action 不丢失，上线后按序执行；断电自动恢复或回滚
 9. **Agent 常驻 + CLI 按需**：`aura-ota-agent` 后台持续轮询，`zota-cli` 按需手动操作
 10. **可观测性**：Prometheus metrics + 告警 + 审计日志（满足 ISO 21434）
-11. **zota-repo 只读 zota-server MGMT API**：zota-repo 不与车端直连。车辆通过 DDI configData 上报实际版本到 zota-server 属性，zota-repo 通过 MGMT API 只读查询 target attributes（实际状态）和 assigned DS（预期状态），计算漂移。车端唯一入口是 zota-server DDI。
+11. **zota-repo 可写 zota-server MGMT API**：zota-repo 通过 MGMT API 读写 zota-server。车辆通过 DDI configData 上报实际版本到 zota-server 属性，zota-repo 通过 MGMT API 查询 target attributes（实际状态）和 assigned DS（预期状态），计算漂移。一键下发时，zota-repo 通过 MGMT API 创建 SM/DS/Rollout。车端唯一入口是 zota-server DDI。
+
+### 下发全链路（ziot → Rollout → DDI）
+
+```
+ziot 设备注册
+  │  DeviceInstanceEntity { id="LS6N3EV00PF000001", productId="K_DC_L2" }
+  │
+  ▼
+VehicleSyncListener (JetLinks zota-integration)
+  │  shouldSync: productIds.contains("K_DC_L2") → true
+  │
+  ├─→ syncToZotaRepo()
+  │     POST /api/v1/inventory/vehicles { vin, product_id:"K_DC_L2", ... }
+  │     ✅ zota-repo inventory 表 zota_vehicle_inventory.product_id
+  │
+  └─→ syncToZotaServer()
+        PUT /rest/v1/targets/{vin}/attributes {"productId":"K_DC_L2", "internalCode":"ZSD-K001"}
+        ✅ zota-server target 属性（⚠️ camelCase: productId, 不是 product_id）
+
+zota-repo deploy (POST /api/v1/deploy)
+  │  { release_bundle_id: 42, product_id: "K_DC_L2", auto_start: true }
+  │
+  ├─ catalog.GetReleaseBundle(42) → versions[] (status=production)
+  ├─ inventory.ListVehiclesByProductID("K_DC_L2") → count N
+  ├─ GetOrCreateSoftwareModule × N             (幂等, name+version)
+  ├─ UploadArtifact × N                        (zip pack → zota-server)
+  ├─ CreateDistributionSet("bundle-K_DC_L2")   (含所有 moduleIds)
+  ├─ AssignModulesToDS(dsID, moduleIDs)
+  └─ CreateRollout({ TargetFilterQuery: "attribute.productId==K_DC_L2" })
+       └─ StartRollout(rolloutID)               (auto_start=true)
+       ✅ 自动匹配所有 productId=K_DC_L2 的 target
+
+zota-server Rollout
+  │  targetFilterQuery: "attribute.productId==K_DC_L2"
+  │  → 匹配所有属性中 productId=K_DC_L2 的 target
+  │  → 分配 DS → action 写入 target
+  │
+  ▼
+DDI Poll (车端 aura-ota-agent)
+  │  GET /DDI/.../controller/v1/LS6N3EV00PF000001
+  │  ← DeploymentBase { action: download, artifacts: [...] }
+  │  → 下载 → 安装 → 健康检查 → Feedback
+  ✅
+```
+
+> **⚠️ 属性 key 大小写**：ziot 写入 `productId`（camelCase），Rollout RSQL 必须用 `attribute.productId==`，不是 `attribute.product_id==`。
+
+### 标定下发（per-VIN，不走产品批量）
+
+```
+zota-repo 标定绑定
+  │  VehicleBinding { VIN, module_name, version, status=production, package_path }
+  │
+  ▼
+POST /api/v1/deploy/calibration { vin: "LS6N3EV00PF000001" }
+  │
+  ├─ calStore.ActiveProductionBindings(vin) → bindings[]
+  ├─ 检查 PackagePath（未打包则返回错误，提示先 package）
+  ├─ GetOrCreateSoftwareModule × N             (type=calibration)
+  ├─ UploadArtifact (读取本地 zip 文件)
+  ├─ CreateDistributionSet("Calib-{vin}-{type}")
+  ├─ AssignModulesToDS
+  └─ AssignDistributionSet(vin, dsID)           ← 直接分配，不走 Rollout
+       ✅ zota-server target 收到 DS action
+
+zota-server
+  │  target {controllerId} ← assigned DS
+  │
+  ▼
+DDI Poll (车端)
+  │  GET /DDI/.../controller/v1/{VIN}
+  │  ← DeploymentBase { action: download, artifacts: [calib-*.zip] }
+  │  → 下载标定包 → 安装 → Feedback
+  ✅
+```
+
+> **标定 vs 产品下发差异**：标定下发走 `AssignDistributionSet` 直接分配到单台 VIN，不创建 Rollout（单台没必要）。产品下发走 `CreateRollout` + RSQL filter 批量匹配。
+
+### 存储模型：TOS 共享但目录隔离
+
+zota-repo 和 zota-server 共享同一个 TOS bucket，但目录不同，下发时是**物理拷贝**：
+
+```
+TOS bucket: zota-repo
+│
+├── zota-repo 侧
+│   ├── versions/{module}/{version}/           ← 通用软件 artifact
+│   └── calibrations/artifact/{vin}/           ← 标定 zip 包
+│
+└── zota-server 侧（通过 MGMT API 写入）
+    └── DEFAULT/{sha1hash}                      ← content-addressed
+```
+
+下发时 zota-repo 从自己目录读文件，通过 `POST /softwaremodules/{id}/artifacts` multipart 重新上传到 zota-server。**同一份数据在 TOS 里存两份**（可后续优化为 server-side CopyObject）。
 12. **zeol Pipeline 版本兼容**：Pipeline YAML 声明 `min_zeol_version`，加载时版本不满足 → 拒绝加载。未知 checker 类型 → 标记 skipped（不阻塞 pipeline），确保 YAML 更新不破坏旧二进制。
 13. **zeol 操作员 PIN 认证 + 滑动会话**：产线员工用工号+PIN登录。PIN SHA-256 哈希存储。会话滑动过期（30分钟无操作自动登出，每次 API 调用自动续期，12小时绝对上限）。所有操作记录审计日志。主管 `zeol operator add/remove` 管理操作员。zeol 不需要 Casdoor——台架单机工具，离线优先。
 14. **zota-repo 接入 Casdoor**（规划中）：zota-repo 是云端多角色服务（工程师/发布经理/管理员），需要 OAuth2/OIDC + RBAC + SSO。Casdoor 提供统一身份管理。
@@ -230,6 +330,18 @@ zota-cli provision --vin MYVIN --offline --cert-dir /tmp/certs
 # zota-server 状态
 curl -s -u admin:admin http://localhost:8090/rest/v1/targets | jq '.total'
 
+# 一键下发（zota-repo → zota-server）
+curl -X POST http://localhost:8080/api/v1/deploy \
+  -H 'Content-Type: application/json' \
+  -d '{"release_bundle_id":42, "product_id":"K_DC_L2", "auto_start":true}'
+# Response: { ds_id, rollout_id, target_count, modules, ... }
+
+# 标定下发（per-VIN）
+curl -X POST http://localhost:8080/api/v1/deploy/calibration \
+  -H 'Content-Type: application/json' \
+  -d '{"vin":"LS6N3EV00PF000001"}'
+# Response: { vin, ds_id, assigned: true, software_modules: [...] }
+
 # 构建发布
 cd ota && bash scripts/build-sign-publish.sh 1.2.3
 
@@ -273,5 +385,7 @@ Vault PKI ──→ zota-server ──→ zota-web
 - [project-report.md](references/project-report.md) — 项目汇报（里程碑/风险/进度）
 - [architecture-evolution.md](references/architecture-evolution.md) — 架构演进（ADR/DB Schema/Roadmap）
 - [ux-conventions.md](references/ux-conventions.md) — UX 设计规范（页面布局/统计区/表单/颜色/状态覆盖）
+- [zota-repo-deploy-design.md](references/zota-repo-deploy-design.md) — zota-repo → zota-server 包下发通道设计（6 步写入 + API 规格）
+- [aura-configs-upgrade-flow.md](references/aura-configs-upgrade-flow.md) — aura-configs.tar.gz 升级流程（YAML 清单 + 车端编排 + 回滚）
 - [gstreamer-rtcp-limitation.md](references/gstreamer-rtcp-limitation.md) — GStreamer 1.16 rtspsrc keyframe 请求限制与升级路径
 - [LOOP.md](LOOP.md) — ZOTA 运行态 Loop 协调 + 碰撞检测

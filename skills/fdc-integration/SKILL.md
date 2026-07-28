@@ -265,7 +265,7 @@ OTA 能力是**产品级可配置特性**：设备产品在物模型中定义 `o
 ```
 ┌──────────────────────────────────────────────────┐
 │              FdcFirmwareController                │
-│           POST /api/fdc/ota/upgrade               │
+│           POST /api/firmware/ota/upgrade               │
 └─────────────────────┬────────────────────────────┘
                       │ deviceId → productId
                       ▼
@@ -413,9 +413,9 @@ CREATE TABLE fdc_device_upgrade (
 
 | ID | Given | When | Then |
 |----|-------|------|------|
-| OTA-01 | 上传 .bin 文件 | POST /api/fdc/firmware/upload | 返回 SHA256 + fileUrl |
-| OTA-02 | 选择设备 + 固件 | POST /api/fdc/ota/upgrade | 设备收到 fdc/{id}/ota/down |
-| OTA-03 | FDC 上报 progress=50 | GET /api/fdc/ota/status/{taskId} | progress=50 |
+| OTA-01 | 上传 .bin 文件 | POST /api/firmware/upload | 返回 SHA256 + fileUrl |
+| OTA-02 | 选择设备 + 固件 | POST /api/firmware/ota/upgrade | 设备收到 fdc/{id}/ota/down |
+| OTA-03 | FDC 上报 progress=50 | GET /api/firmware/ota/status/{taskId} | progress=50 |
 | OTA-04 | FDC 上报 success | 查看设备详情 | 固件版本更新为目标版本 |
 
 ## 10. 边界条件与风险
@@ -590,9 +590,9 @@ python tests/fdc_simulator.py -d FDC-001 -a status -s online -v 1.2.3
 python tests/fdc_simulator.py -d FDC-001 -a listen -t 60
 
 # 终端 4: zeroniot 发起升级（或 curl API）
-curl -X POST http://localhost:8848/api/fdc/ota/upgrade \
-  -H "Content-Type: application/json" \
-  -d '{"deviceIds":["FDC-001"],"version":"1.3.0","fileUrl":"http://localhost:8848/api/fdc/firmware/download/test.bin","sha256":"abc123","fileSize":1024}'
+curl -X POST http://localhost:8848/api/firmware/ota/upgrade \
+  -H 'Content-Type: application/json' \
+  -d '{"deviceIds":["FDC-001"],"version":"1.3.0","fileUrl":"http://localhost:8848/api/firmware/download/test.bin","sha256":"abc123","fileSize":1024}'
 ```
 
 ### 预期结果
