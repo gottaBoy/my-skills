@@ -109,7 +109,7 @@ FDC设备 ──MQTT──→ zeroniot(内置Broker)   FDC设备 ──MQTT─�
 |--------|-----|------|
 | 镜像 | `emqx/emqx:5.8` | 开源社区版 |
 | 副本数 | 3 | StatefulSet，高可用 |
-| NodePort | 31883 (MQTT), 31884 (MQTT TLS), 38083 (Dashboard), 38084 (WS) | 对 FDC 暴露 |
+| NodePort | 31883 (MQTT), 31884 (MQTT TLS), 38083 (Dashboard), 38084 (WS) | 对外暴露域名: mqtt.zerontruck.com |
 | 资源 | 2C/4Gi per pod | 支持万级连接 |
 | 存储 | 1Gi PVC per pod | 日志 + 数据目录 |
 
@@ -220,6 +220,10 @@ OTA 能力是**产品级可配置特性**：设备产品在物模型中定义 `o
 
 ### 6.3 下行：OTA 升级指令
 
+> **注意**: `fwUrl` 在本地开发时为相对路径 `/api/firmware/download/{productId}/{filename}`，
+> 生产环境通过 `ZIOT_FIRMWARE_DOWNLOAD_URL` 配置为完整域名 `https://ziot.zerontruck.com/api/firmware/download/{productId}/{filename}`。
+> FDC 设备直接 HTTP GET 该 URL 即可下载固件，无需自行拼接域名。
+
 ```json
 {
   "deviceId": "FDC-001",
@@ -227,7 +231,7 @@ OTA 能力是**产品级可配置特性**：设备产品在物模型中定义 `o
   "ts": 1753094400000,
   "data": {
     "fwVersion": "1.3.0",
-    "fwUrl": "https://files.zeron.ai/fdc/firmware_v1.3.0.bin",
+    "fwUrl": "https://ziot.zerontruck.com/api/firmware/download/hc_fdc/fdc_v1.3.0_1722230400000.bin",
     "fwSize": 2097152,
     "fwSha256": "abc123...",
     "force": false,
@@ -605,3 +609,99 @@ curl -X POST http://localhost:8848/api/firmware/ota/upgrade \
 | 4 | OTA 指令下发 | 终端 3 收到 `ota_upgrade` JSON |
 | 5 | 设备模拟 OTA | 自动上报 downloading→installing→success |
 | 6 | RabbitMQ 桥接 | `zota.dmf.queue` 收到 OTA_STATUS 事件 |
+
+## 15. 供应商对接 FAQ（飞书可直接复制）
+
+
+**1. clientID 生成规则，哪边提供？**
+
+规则：FDC-{SN}，由我方定义。
+
+- 贵方提供设备 SN 列表（如 A3B7C9, B4D8E2...）
+- 我方在 zeroniot 录入后，系统自动生成 MQTT 密码
+- 最终给到贵方：clientId（按规则 FDC-{SN}）+ password（我方生成）
+
+
+**2. 服务器端是否已经在正常使用？**
+
+是的，ziot服务已部署运行。
+
+MQTT Broker（火山云托管）：已就绪
+  地址：mqtt-4p8dgowrr25028abou3z.mqtt.volces.com
+  TLS 端口：8883
+
+zeroniot（ziot 平台）：已部署
+  对外域名：ziot.zerontruck.com
+  固件上传/下载 API 可用
+
+
+**3. 零一提供账号和 password 和 url？**
+
+我方提供以下三项：
+
+MQTT 连接地址：mqtt-4p8dgowrr25028abou3z.mqtt.volces.com:8883（TLS）
+clientId：FDC-{贵方SN}（如 FDC-A3B7C9）
+password：我方生成后下发
+
+设备方无需自行注册或生成任何凭证。
+
+
+**4. 字段的协议？**
+
+四份消息格式（全部 JSON，topic 前缀 hc_fdc）：
+
+（1）设备状态上报 — topic: hc_fdc/{deviceId}/status/up
+{"deviceId":"FDC-001","type":"status","ts":1753094400000,"data":{"state":"online","fw_version":"1.2.3","uptime_s":86400}}
+
+（2）遥测数据上报 — topic: hc_fdc/{deviceId}/data/up
+{"deviceId":"FDC-001","type":"data","ts":1753094400000,"data":{"bandwidth_up":1024,"bandwidth_down":2048,"rtt_ms":35,"packet_loss":0.5}}
+data 内字段由设备按需定义，平台不做限制。
+
+（3）OTA 进度上报 — topic: hc_fdc/{deviceId}/ota/up
+{"deviceId":"FDC-001","type":"ota","ts":1753094400000,"data":{"state":"downloading","fwVersion":"1.3.0","progress":50}}
+state 取值：downloading / installing / success / failed
+
+（4）下行：控制指令 — topic: hc_fdc/{deviceId}/command/down（设备订阅，QoS 1）
+{"deviceId":"FDC-001","type":"command","ts":1753094400000,"data":{"cmd":"reboot"}}
+
+（5）OTA 升级指令（下行）— topic: hc_fdc/{deviceId}/ota/down（设备订阅，QoS 1）
+{"deviceId":"FDC-001","type":"ota_upgrade","ts":1753094400000,"data":{"fwVersion":"1.3.0","fwUrl":"https://ziot.zerontruck.com/api/firmware/download/hc_fdc/fdc_v1.3.0_1722230400000.bin","fwSize":2097152,"fwSha256":"abc123...","force":false,"deadlineS":3600}}
+
+
+
+**5. 认证方式？单向还是双向？**
+
+分两层：
+
+MQTT 连接：TLS 单向认证 — 服务端有证书，设备端无需证书，只需 clientId + password
+固件下载（HTTP）：HTTPS，无需任何认证，端点完全开放
+
+
+**6. 调试时如何传包到服务器？**
+
+方式一（API 上传）：
+curl -X POST https://ziot.zerontruck.com/api/firmware/upload \
+  -F "file=@firmware_v1.3.0.bin" \
+  -F "version=1.3.0" \
+  -F "productId=hc_fdc"
+
+返回的 fileUrl 即为设备下载地址。
+
+方式二（前端页面）：登录 zeroniot 管理后台 → 固件管理 → 上传固件。
+
+
+**设备端实现要点（汇总）**
+
+1. MQTT 连接 → mqtt-4p8dgowrr25028abou3z.mqtt.volces.com:8883 (TLS)
+   clientId: FDC-{SN}, password: 平台分配
+
+2. 订阅 topic → hc_fdc/{自己的SN}/ota/down (QoS 1)
+
+3. 收到 OTA → 解析 JSON，取 data.fwUrl
+
+4. 下载固件 → HTTP GET fwUrl（无需认证）
+
+5. 校验安装 → SHA256 校验 → 安装 → 重启
+
+6. 上报进度 → publish 到 hc_fdc/{SN}/ota/up
+   {"type":"ota","data":{"state":"downloading|installing|success|failed","progress":0-100}}

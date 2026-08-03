@@ -106,6 +106,10 @@ flowchart TB
 | `zeol/internal/checker/ssh_pool.go` | SSH 连接池 + 自动重连 | 断线自动重连 3 次，指数退避 |
 | `zeol/internal/checker/registry.go` | Checker 注册表，未知类型优雅降级 | 未知 checker → skipped（不阻塞 pipeline） |
 | `zeol/internal/cli/version.go` | `zeol version --check` 版本检查 | 对比 zota-repo 最新版本 |
+| `mcu-updater/pkg/aurix/flasher.go` | AURIX MCU UDP 刷写（CommonIf 协议） | Flash() 6步编排 + Intel HEX 解析 + 进度回调 |
+| `mcu-updater/pkg/aurix/protocol.go` | CommonIf 消息构建/CRC/UDP收发 | 响应格式: [0xF0][BLOCK_ID][IF_ID][ERRC][LEN_H][LEN_L][data][CRC] |
+| `mcu-updater/pkg/aurix/hex.go` | Intel HEX 解析器 | 支持 ext linear addr + cached→physical 地址映射 |
+| `mcu-updater/cmd/mcu-updater/main.go` | 独立 CLI：flash/version 子命令 | `--hex` + `--addr host:port` |
 | `zeol/internal/cli/reload.go` | `zeol reload` 列出远程 pipeline | 显示各 pipeline 兼容性 |
 | `aura/src/ztd/ztd_network/ztd_rtsp/src/vehicle/rtsp_stream.cpp` | RTSP Server：appsrc→NVENC→rtph264pay | gop-size 需 probe 设置，NVENC 不认 key-int-max |
 | `aura/src/ztd/ztd_network/ztd_rtsp/src/vehicle/push_node.cpp` | TRRO 推流：rtspsrc→appsink→TRRO SDK | GStreamer 1.16 无法发 RTCP PLI，降级为 IDR 缓存重发 |
@@ -128,6 +132,7 @@ flowchart TB
 | **zota-server 管理 UI** | ✅ 完成 | `zota-web/` | Dashboard/Targets/Rollouts |
 | **SWUpdate A/B 分区** | ✅ 代码 | `internal/swupdate/` | 断电保护 + bootloader 3次回退 (待实车) |
 | **MCU UDS 刷写** | ✅ 代码 | `internal/mcu/` | CAN 总线 + 双 Bank 保护 (待硬件) |
+| **MCU AURIX UDP 刷写** | ✅ 完成 | `mcu-updater/pkg/aurix/` | CommonIf UDP 协议 + Intel HEX + 独立 CLI |
 | **Agent 自升级** | ✅ 代码 | `internal/selfupgrade/` | 原子替换 + systemd 恢复 |
 | **远程诊断平台** | ✅ 完成 | `internal/diag/` | MQTT + HMAC + 11命令白名单 (11/11 实现) |
 | **Pre-flight 检查** | ✅ 完成 | `internal/preflight/` | 磁盘/电池/车辆状态/更新互斥锁 |
@@ -296,6 +301,23 @@ zota-cli reload                                  # 热重载配置
 # 后台运行
 zota-cli run --configs-dir /etc/zota-cli/configs
 
+# ── MCU 刷写 (AURIX UDP) ──
+
+# 安全预检（不擦不写）
+zota-cli mcu validate --hex firmware.hex --addr 169.254.1.10:5001
+
+# 读 MCU 版本
+zota-cli mcu version --addr 169.254.1.10:5001
+
+# 检查 hex 内容
+zota-cli mcu info --hex firmware.hex
+
+# 手动刷写
+zota-cli mcu flash --hex firmware.hex --addr 169.254.1.10:5001
+
+# 连通性检查
+zota-cli mcu ping --addr 169.254.1.10:5001
+
 # ── 产线 ──
 
 # EOL 检测（本地 pipeline）
@@ -373,7 +395,8 @@ Vault PKI ──→ zota-server ──→ zota-web
 
 ## 参考文档
 
-- [k8s-best-practices.md](references/k8s-best-practices.md) — K8s 部署最佳实践（安全/可维护/高效 + 检查清单）
+- [k8s-best-practices.md](references/k8s-best-practices.md) — K8s 部署最佳实践（安全/可维护/高效 + HPA + 检查清单）
+- [websocket-best-practices.md](references/websocket-best-practices.md) — WebSocket/STOMP/SockJS 配置踩坑（nginx map + worker_processes + APIG 注解）
 - [gap-analysis.md](references/gap-analysis.md) — L4 量产就绪全面差距分析（P0/P1/P2 + 路线图 + 风险）
 - [roadmap.md](references/roadmap.md) — 量产 L4 全能力交付路线图（5 Phase + 质量门）
 - [spec-done-review.md](references/spec-done-review.md) — Spec Done 自检报告（GWT 覆盖 + Non-Goals + ADR 间隙）
@@ -388,4 +411,5 @@ Vault PKI ──→ zota-server ──→ zota-web
 - [zota-repo-deploy-design.md](references/zota-repo-deploy-design.md) — zota-repo → zota-server 包下发通道设计（6 步写入 + API 规格）
 - [aura-configs-upgrade-flow.md](references/aura-configs-upgrade-flow.md) — aura-configs.tar.gz 升级流程（YAML 清单 + 车端编排 + 回滚）
 - [gstreamer-rtcp-limitation.md](references/gstreamer-rtcp-limitation.md) — GStreamer 1.16 rtspsrc keyframe 请求限制与升级路径
+- [mcu-updater-design.md](references/mcu-updater-design.md) — MCU AURIX UDP 刷写工具设计（CommonIf 协议 + Intel HEX + 集成方案）
 - [LOOP.md](LOOP.md) — ZOTA 运行态 Loop 协调 + 碰撞检测

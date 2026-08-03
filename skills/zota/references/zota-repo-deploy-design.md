@@ -253,3 +253,46 @@ func (c *Client) CopyArtifactFromS3(smID int64, req S3CopyRequest) (*Artifact, e
 | 1 | zota-server: `S3CopyController` + `CopyObject` 调用 | 1h |
 | 2 | zota-repo: `CopyArtifactFromS3` 方法 | 0.5h |
 | 3 | deploy handler 切换调用方 | 0.5h |
+
+---
+
+## 运维排障
+
+### 下发 500 排查清单
+
+| 现象 | 可能原因 | 修复 |
+|------|----------|------|
+| DS 创建成功但 Rollout 失败 | `AssignModulesToDS` 报错导致 `Success=false` | DS 复用时 module 已绑定，报错改非致命 |
+| DS 重复键冲突 | 重复调用 CreateDistributionSet | 改用 `GetOrCreateDistributionSet` |
+| Rollout 创建超时 | RabbitMQ 不可达，事件发布阻塞 | 本地关 `events.remote.enabled=false` |
+
+### 幂等下发最佳实践
+
+```go
+// ✅ GetOrCreate 模式 — 重复下发安全
+sm, _ := zs.GetOrCreateSoftwareModule(name, version, modType)
+ds, _ := zs.GetOrCreateDistributionSet(name, version, type, moduleIDs)
+
+// AssignModulesToDS — 非致命（DS 复用时已有绑定）
+if err := zs.AssignModulesToDS(ds.ID, moduleIDs); err != nil {
+    log.Warnf("assign modules (may already be assigned): %v", err)
+    // 不设 Success=false，不阻断后续 rollout 创建
+}
+
+// auto_start 分离 — 默认只建 DS，选中才建 Rollout
+if req.AutoStart {
+    rollout, err := zs.CreateRollout(...)
+    zs.StartRollout(rollout.ID)
+}
+```
+
+### SM type 映射规则
+
+`resolveType(moduleName)` 根据模块名推断 hawkbit SoftwareModule type：
+
+| 模块名包含 | SM type | 适用场景 |
+|-----------|---------|---------|
+| firmware, control | `firmware` | MCU/ECU 固件 |
+| perception, image | `container` | 感知/镜像 |
+| lidar, driver, planning, core, config | `application` | 通用应用 |
+| calib | `calibration` | 标定参数 |
