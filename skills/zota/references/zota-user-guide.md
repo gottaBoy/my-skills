@@ -223,7 +223,39 @@ dev → staging → validation → production
 | `docker` | 容器镜像 | `docker pull` → 停旧容器 → 启新容器 → 健康检查 |
 | `archive` | 文件包（.zip/.tar.gz） | 下载 → 解压到目标目录 → 可选重启容器 |
 
-### 3.3 下发链路
+### 3.3 模块类型对齐（三端一致）
+
+| 模块 | Catalog Type | Bundle Part | Manifest Part | Agent Handler | 默认 target_dir |
+|------|-------------|:--:|:--:|:--:|------|
+| aura | container | docker | docker | ModeDocker | — |
+| systemd_service | systemd_service | archive | archive | ModeArchive | /home/nvidia/zeron/manifest/systemd_service |
+| calibration | calibration | archive | archive | ModeArchive | /home/nvidia/zeron/manifest/calibration |
+| config | config | archive | archive | ModeArchive | /home/nvidia/zeron/manifest/config |
+| models | archive | archive | archive | ModeArchive | /home/nvidia/zeron/manifest/models |
+
+manifest.yml 中的 metadata.target_dir 优先级高于默认值；若两者都为空，报错。
+
+### 3.4 新增模块
+
+新增一个模块类型时，需要同步修改以下四处：
+
+| 步骤 | 位置 | 修改内容 |
+|:--:|------|------|
+| 1 | `zota-repo/internal/deploy/handler.go` | `catalogTypeToPart` 添加类型→Part 映射 |
+| 2 | 同上 `writeModuleMetadata` | switch case 添加新类型（设置 target_dir） |
+| 3 | `aura-ota-agent/internal/updater/handler.go` | 若为新 Part，`detectMode` 添加 case |
+| 4 | 本文档 3.3 对齐矩阵 | 添加新行 |
+
+示例：新增 `ros2_pkg` 模块（archive 类）
+
+1. `catalogTypeToPart` 加：`"ros2_pkg": "archive"`
+2. `writeModuleMetadata` 加：`case "ros2_pkg":` 设置 target_dir
+3. 若 Part 是 archive，`detectMode` 无需修改
+4. 对齐矩阵加一行：`ros2_pkg | ros2_pkg | archive | archive | ModeArchive | ...`
+
+新增 Part（如 `rauc`）则需要同时在 agent `detectMode` 添加新 case 和处理函数。
+
+### 3.5 下发链路
 
 ```
 zota-repo                    zota-server                  车端
@@ -302,7 +334,7 @@ curl -X POST https://zota-repo.intra.zeron.ai/api/v1/deploy \
 version: "0.0.1"
 modules:
   - part: docker
-    name: aura-docker
+    name: aura
     version: "1.0.2"
     enabled: true
     metadata:
@@ -488,3 +520,4 @@ A: zota-repo → Deploy History 查看每条记录的状态；zota-web → Targe
 
 Q: 回滚后还能再升回去吗？
 A: 可以，重新下发目标版本即可。archive 的旧备份不会被删除。
+
