@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zota UI Modernization"
+  short_description: "Modernize Zota Ant Design UI with regression gates"
+  default_prompt: "Use $zota-ui-modernization to modernize Zota Web UI safely and verify the result."

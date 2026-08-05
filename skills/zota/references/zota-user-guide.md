@@ -507,7 +507,64 @@ zota-cli archive list           # 查看备份
 zota-cli archive rollback --module xxx --version N
 ```
 
-## 十一、常见问题
+## 十一、运维注意事项 — 首次部署 Checklist
+
+zota-repo 下发依赖 HawkBit 的类型系统，初次部署（含重建环境）必须完成以下一次性配置：
+
+### 11.1 创建 SoftwareModuleType
+
+HawkBit 默认只有 `application` 和 `os`，需要手动创建 zota-repo 使用的类型：
+
+```bash
+curl -u admin:admin -X POST http://zota-server:8090/rest/v1/softwaremoduletypes \
+  -H 'Content-Type: application/hal+json' \
+  -d '[
+    {"key":"archive","name":"Archive","maxAssignments":1},
+    {"key":"docker","name":"Docker","maxAssignments":1},
+    {"key":"calibration","name":"Calibration","maxAssignments":1}
+  ]'
+```
+
+### 11.2 创建 DistributionSetType
+
+```bash
+curl -u admin:admin -X POST http://zota-server:8090/rest/v1/distributionsettypes \
+  -H 'Content-Type: application/hal+json' \
+  -d '[{"key":"zota","name":"ZOTA"}]'
+```
+
+### 11.3 关联 SM Type 为可选（非强制）
+
+关键：设置为 **optional** 而非 mandatory。若设为 mandatory，DS 必须同时包含所有三种类型的模块才算完整，导致单模块下发时无法创建 Rollout。
+
+```bash
+ZOTA_ID=$(curl -s -u admin:admin http://zota-server:8090/rest/v1/distributionsettypes | jq -r '.content[]|select(.key=="zota").id')
+for SMID in $(curl -s -u admin:admin http://zota-server:8090/rest/v1/softwaremoduletypes | jq -r '.content[]|select(.key=="archive" or .key=="docker" or .key=="calibration").id'); do
+  curl -s -u admin:admin -X POST "http://zota-server:8090/rest/v1/distributionsettypes/$ZOTA_ID/mandatorymoduletypes" -H 'Content-Type: application/hal+json' -d "{\"id\":$SMID}"
+done
+```
+
+| 配置项 | 正确值 | 错误后果 |
+|--------|--------|----------|
+| SM Type 关联方式 | optional | mandatory 会导致单类型 DS 不完整，无法创建 Rollout |
+| CreateDS JSON 字段 | `"modules": [{"id": N}]` | `"moduleIds": [N]` 导致模块未挂载 |
+
+### 11.4 RabbitMQ 用户授权
+
+```bash
+rabbitmqctl set_permissions -p / zeronAdmin ".*" ".*" ".*"
+```
+
+### 11.5 验证清单
+
+| 检查项 | 命令 | 预期 |
+|--------|------|------|
+| SM Types 存在 | `GET /rest/v1/softwaremoduletypes` | archive, docker, calibration |
+| DS Type 存在 | `GET /rest/v1/distributionsettypes` | zota |
+| DS Type 关联 | `GET /rest/v1/distributionsettypes/{id}` | mandatory=0 或无限制 |
+| RabbitMQ 连通 | 查看 zota-server 日志 | 无 530/NOT_ALLOWED |
+
+## 十二、常见问题
 
 Q: Bundle 和 Manifest 能混用吗？
 A: 可以，两者最终都在 zota-server 中创建独立的 DS 和 Rollout，互不影响。

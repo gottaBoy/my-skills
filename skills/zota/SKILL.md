@@ -11,6 +11,7 @@ description: 'ZOTA OTA 平台专家 — zota-server + aura-ota-agent + zota-cli 
 ## When to Use
 - 调试：OTA 更新失败、DDI 轮询异常、容器启动失败、证书过期
 - 开发：修改 `aura-ota-agent/`、`zota-cli/`、`hawkbit/` 任一组件的代码
+- 前端：改造 zota-web / hawkbit-updater-ui 时同时使用 `zota-ui-modernization` Skill
 - 审查：ZOTA 相关 PR review
 - 运维：车辆升级、标定下发、远程诊断
 - 架构：新增更新模式（SWUpdate/RAUC）、新增诊断能力
@@ -111,6 +112,10 @@ flowchart TB
 | `mcu-updater/pkg/aurix/hex.go` | Intel HEX 解析器 | 支持 ext linear addr + cached→physical 地址映射 |
 | `mcu-updater/cmd/mcu-updater/main.go` | 独立 CLI：flash/version 子命令 | `--hex` + `--addr host:port` |
 | `zeol/internal/cli/reload.go` | `zeol reload` 列出远程 pipeline | 显示各 pipeline 兼容性 |
+| `skills/zota/references/casdoor-sso-unified-analysis.md` | zota-repo、zota-server、ziot 统一 Casdoor SSO 基线 | 身份认证与业务权限分层；尚未实施 |
+| `skills/zota/references/ziot-casdoor-web-analysis.md` | ziot/zeron-cloud-web 接入 Casdoor 专题分析 | Vue 登录链路、菜单按钮权限、UI 重构与分支灰度方案 |
+| `skills/zota/references/zota-unified-identity-ui-analysis.md` | Casdoor/Authing 与全平台 UI 演进分析 | HawkBit OIDC、zeron 门户壳、React 子应用、设计令牌和分阶段实施 |
+| `skills/zota/references/zota-frontend-ux-evolution.md` | ZOTA/ZIOT 前端 UX 演进路线 | zota-web 首个试点、核心工作流、组件基线、门户接入和体验指标 |
 | `aura/src/ztd/ztd_network/ztd_rtsp/src/vehicle/rtsp_stream.cpp` | RTSP Server：appsrc→NVENC→rtph264pay | gop-size 需 probe 设置，NVENC 不认 key-int-max |
 | `aura/src/ztd/ztd_network/ztd_rtsp/src/vehicle/push_node.cpp` | TRRO 推流：rtspsrc→appsink→TRRO SDK | GStreamer 1.16 无法发 RTCP PLI，降级为 IDR 缓存重发 |
 
