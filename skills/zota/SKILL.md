@@ -115,6 +115,7 @@ flowchart TB
 | `skills/zota/references/casdoor-sso-unified-analysis.md` | zota-repo、zota-server、ziot 统一 Casdoor SSO 基线 | 身份认证与业务权限分层；尚未实施 |
 | `skills/zota/references/ziot-casdoor-web-analysis.md` | ziot/zeron-cloud-web 接入 Casdoor 专题分析 | Vue 登录链路、菜单按钮权限、UI 重构与分支灰度方案 |
 | `skills/zota/references/zota-unified-identity-ui-analysis.md` | Casdoor/Authing 与全平台 UI 演进分析 | HawkBit OIDC、zeron 门户壳、React 子应用、设计令牌和分阶段实施 |
+| `skills/zota/references/zota-iam-v1.md` | ZOTA IAM v1 架构与实施基线 | 项目边界、身份分层、应用注册、权限模型、Casdoor 产品化和 Phase 0-4 路线 |
 | `skills/zota/references/zota-frontend-ux-evolution.md` | ZOTA/ZIOT 前端 UX 演进路线 | zota-web 首个试点、核心工作流、组件基线、门户接入和体验指标 |
 | `aura/src/ztd/ztd_network/ztd_rtsp/src/vehicle/rtsp_stream.cpp` | RTSP Server：appsrc→NVENC→rtph264pay | gop-size 需 probe 设置，NVENC 不认 key-int-max |
 | `aura/src/ztd/ztd_network/ztd_rtsp/src/vehicle/push_node.cpp` | TRRO 推流：rtspsrc→appsink→TRRO SDK | GStreamer 1.16 无法发 RTCP PLI，降级为 IDR 缓存重发 |
@@ -418,3 +419,5 @@ Vault PKI ──→ zota-server ──→ zota-web
 - [gstreamer-rtcp-limitation.md](references/gstreamer-rtcp-limitation.md) — GStreamer 1.16 rtspsrc keyframe 请求限制与升级路径
 - [mcu-updater-design.md](references/mcu-updater-design.md) — MCU AURIX UDP 刷写工具设计（CommonIf 协议 + Intel HEX + 集成方案）
 - [LOOP.md](LOOP.md) — ZOTA 运行态 Loop 协调 + 碰撞检测
+- [parallel-driving-production-issues-2026-08-09.md](references/parallel-driving-production-issues-2026-08-09.md) — 平行驾驶远控生产问题分析与整改基线（车端 e2e、消息链路、接管切换）
+- [parallel-driving-distributed-transformation-plan.md](references/parallel-driving-distributed-transformation-plan.md) — 平行驾驶分布式改造方案（共享订阅消除扇出、状态下沉 Redis、WS 首帧快照、滑动续期、安全信箱）
