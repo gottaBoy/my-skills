@@ -185,8 +185,9 @@ VehicleSyncListener (JetLinks zota-integration)
   │     ✅ zota-repo inventory 表 zota_vehicle_inventory.product_id
   │
   └─→ syncToZotaServer()
+        ensureTargetType(K_DC_L2) → 创建 Target 带 targetType=K_DC_L2
         PUT /rest/v1/targets/{vin}/attributes {"productId":"K_DC_L2", "internalCode":"ZSD-K001"}
-        ✅ zota-server target 属性（⚠️ camelCase: productId, 不是 product_id）
+        ✅ target 类型 + 属性（属性仅作展示，Rollout 过滤用 targettype.name）
 
 zota-repo deploy (POST /api/v1/deploy)
   │  { release_bundle_id: 42, product_id: "K_DC_L2", auto_start: true }
@@ -197,13 +198,13 @@ zota-repo deploy (POST /api/v1/deploy)
   ├─ UploadArtifact × N                        (zip pack → zota-server)
   ├─ CreateDistributionSet("bundle-K_DC_L2")   (含所有 moduleIds)
   ├─ AssignModulesToDS(dsID, moduleIDs)
-  └─ CreateRollout({ TargetFilterQuery: "attribute.productId==K_DC_L2" })
+  └─ CreateRollout({ TargetFilterQuery: "targettype.name==K_DC_L2" })
        └─ StartRollout(rolloutID)               (auto_start=true)
-       ✅ 自动匹配所有 productId=K_DC_L2 的 target
+       ✅ 自动匹配所有 target type = K_DC_L2 的 target
 
 zota-server Rollout
-  │  targetFilterQuery: "attribute.productId==K_DC_L2"
-  │  → 匹配所有属性中 productId=K_DC_L2 的 target
+  │  targetFilterQuery: "targettype.name==K_DC_L2"
+  │  → 匹配所有 type=K_DC_L2 的 target
   │  → 分配 DS → action 写入 target
   │
   ▼
@@ -214,7 +215,7 @@ DDI Poll (车端 aura-ota-agent)
   ✅
 ```
 
-> **⚠️ 属性 key 大小写**：ziot 写入 `productId`（camelCase），Rollout RSQL 必须用 `attribute.productId==`，不是 `attribute.product_id==`。
+> **⚠️ 过滤字段**：Rollout 按产品过滤统一用 `targettype.name==`；不要用 `attribute.productId`（车端 configData replace 会清空 attributes，导致匹配数不可靠）。
 
 ### 标定下发（per-VIN，不走产品批量）
 
