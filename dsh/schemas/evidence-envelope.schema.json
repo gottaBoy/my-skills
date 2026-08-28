@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeron.ai/schemas/dsh/evidence-envelope-v1.json",
+  "title": "DSH immutable evidence envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "envelope_version",
+    "evidence_id",
+    "incident_id",
+    "kind",
+    "scope",
+    "time_window",
+    "source",
+    "observation",
+    "freshness"
+    ,"relation"
+    ,"assessment"
+    ,"integrity"
+  ],
+  "properties": {
+    "envelope_version": {"const": "1"},
+    "evidence_id": {"type": "string", "maxLength": 128},
+    "incident_id": {"type": "string", "maxLength": 128},
+    "kind": {
+      "type": "string",
+      "enum": ["command_path", "media_path", "broker", "zlm", "ebpf", "vehicle_health", "change"]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vehicle_id"],
+      "properties": {
+        "vehicle_id": {"type": "string", "maxLength": 128},
+        "remote_session_id": {"type": ["string", "null"], "maxLength": 128},
+        "message_id": {"type": ["string", "null"], "maxLength": 128},
+        "video_session_id": {"type": ["string", "null"], "maxLength": 128}
+      }
+    },
+    "time_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end", "clock_domains"],
+      "properties": {
+        "start": {"type": "string", "format": "date-time"},
+        "end": {"type": "string", "format": "date-time"},
+        "clock_domains": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "maxItems": 8
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system", "service", "query_ref"],
+      "properties": {
+        "system": {"type": "string"},
+        "service": {"type": "string"},
+        "instance": {"type": ["string", "null"]},
+        "agent_version": {"type": ["string", "null"]},
+        "query_ref": {"type": "string", "maxLength": 512}
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_type", "observed_at", "attributes"],
+      "properties": {
+        "event_type": {"type": "string", "maxLength": 128},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "monotonic_ns": {"type": ["integer", "null"], "minimum": 0},
+        "attributes": {"type": "object"}
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["data_end", "completeness"],
+      "properties": {
+        "data_end": {"type": "string", "format": "date-time"},
+        "age_ms": {"type": ["integer", "null"], "minimum": 0},
+        "completeness": {"enum": ["complete", "partial", "unknown"]}
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "trace_id": {"type": ["string", "null"]},
+        "span_id": {"type": ["string", "null"]},
+        "parent_ref": {"type": ["string", "null"]},
+        "correlation_keys": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "incident_id",
+              "vehicle_id",
+              "message_id",
+              "seq",
+              "correlation_id",
+              "video_session_id",
+              "trace_id",
+              "session_id"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 8
+        }
+      },
+      "required": ["correlation_keys"]
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "claim_id", "confidence"],
+      "properties": {
+        "role": {"enum": ["supports", "contradicts", "missing", "context"]},
+        "claim_id": {"type": "string", "pattern": "^claim-[A-Za-z0-9._-]+$"},
+        "confidence": {"enum": ["high", "medium", "low"]}
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["content_hash", "created_at", "retention_class"],
+      "properties": {
+        "content_hash": {"type": "string", "pattern": "^sha256:[A-Fa-f0-9]{64}$"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "retention_class": {"type": "string", "maxLength": 64}
+      }
+    }
+  }
+}

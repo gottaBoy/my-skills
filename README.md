@@ -41,6 +41,7 @@ autodrive-skills/
 │   ├── architect.agent.md         ← 架构审查（只读）
 │   ├── ui-designer.agent.md       ← UI 审查（只读）
 │   └── test-strategist.agent.md   ← 测试策略（可运行测试）
+├── full-link-observability.md     ← 车云端 eBPF/OTel/DSH 全链路监控方案
 └── instructions/                  ← 按文件类型匹配的规范
     ├── python.instructions.md
     ├── typescript.instructions.md
@@ -121,6 +122,10 @@ Bug修复:  /bug-hunting → /execution-governor → /verify-feedback → /pr-ch
 CI/CD:    /devops-engineer → /verify-feedback → /pr-checklist
 运维:     /ops-playbook → @architect (复盘)
 ```
+
+## 监控方案
+
+- [车云端全链路监控方案](full-link-observability.md)：定义车端 eBPF、DeepFlow、OpenTelemetry、DataBuff、Grafana 和 DSH 优化控制面的职责边界、数据流、POC 阶段与安全审批边界。
 
 ## 核心理念
 

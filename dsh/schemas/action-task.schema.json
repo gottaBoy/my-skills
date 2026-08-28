@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeron.ai/schemas/dsh/action-task-v1.json",
+  "title": "DSH approved controlled execution task",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_version",
+    "task_id",
+    "incident_id",
+    "risk_level",
+    "action",
+    "scope",
+    "preconditions",
+    "success_criteria",
+    "exit_criteria",
+    "rollback_plan",
+    "approval",
+    "audit",
+    "idempotency_key",
+    "created_at",
+    "expires_at",
+    "nonce",
+    "task_hash"
+  ],
+  "properties": {
+    "task_version": {"const": "1"},
+    "task_id": {"type": "string", "maxLength": 128},
+    "incident_id": {"type": "string", "pattern": "^inc-[A-Za-z0-9._-]+$"},
+    "risk_level": {"enum": ["L2", "L3"]},
+    "action": {
+      "enum": [
+        "single_media_session_reconnect",
+        "restart_observability_agent",
+        "increase_sampling_single_vehicle"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "anyOf": [
+            {"required": ["vehicle_id"]},
+            {"required": ["vehicle_ids"]},
+            {"required": ["service_ids"]}
+          ]
+        }
+      ],
+      "required": ["environment", "max_targets"],
+      "properties": {
+        "environment": {"enum": ["staging", "production"]},
+        "tenant_id": {"type": "string", "maxLength": 128},
+        "vehicle_id": {"type": "string", "maxLength": 128},
+        "vehicle_ids": {
+          "type": "array",
+          "items": {"type": "string", "maxLength": 128},
+          "maxItems": 100
+        },
+        "service_ids": {
+          "type": "array",
+          "items": {"type": "string", "maxLength": 128},
+          "maxItems": 100
+        },
+        "video_session_id": {"type": "string", "maxLength": 128},
+        "max_targets": {"type": "integer", "minimum": 1, "maximum": 1}
+      }
+    },
+    "preconditions": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 256},
+      "minItems": 1,
+      "maxItems": 32
+    },
+    "success_criteria": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 256},
+      "minItems": 1,
+      "maxItems": 32
+    },
+    "exit_criteria": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 256},
+      "minItems": 1,
+      "maxItems": 32
+    },
+    "rollback_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "owner", "runbook_id"],
+      "properties": {
+        "action": {"type": "string", "maxLength": 256},
+        "owner": {"type": "string", "maxLength": 128},
+        "runbook_id": {"type": "string", "maxLength": 128}
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "status",
+        "approver_id",
+        "approver_role",
+        "scope_hash",
+        "decision_ref",
+        "expires_at",
+        "token_ref"
+      ],
+      "properties": {
+        "required": {"const": true},
+        "status": {"enum": ["pending", "approved", "rejected", "expired", "revoked"]},
+        "approver_id": {"type": ["string", "null"], "maxLength": 128},
+        "approver_role": {"type": ["string", "null"], "maxLength": 128},
+        "scope_hash": {"type": "string", "pattern": "^sha256:[A-Fa-f0-9]{64}$"},
+        "decision_ref": {"type": ["string", "null"], "maxLength": 256},
+        "approved_at": {"type": ["string", "null"], "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"},
+        "token_ref": {"type": ["string", "null"], "maxLength": 256}
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["parameters_hash", "runbook_version", "executor_ref"],
+      "properties": {
+        "parameters_hash": {"type": "string", "pattern": "^sha256:[A-Fa-f0-9]{64}$"},
+        "runbook_version": {"type": "string", "maxLength": 128},
+        "executor_ref": {"type": "string", "maxLength": 256},
+        "submitted_at": {"type": ["string", "null"], "format": "date-time"},
+        "execution_ref": {"type": ["string", "null"], "maxLength": 256}
+      }
+    },
+    "idempotency_key": {"type": "string", "maxLength": 256},
+    "created_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "nonce": {"type": "string", "minLength": 16, "maxLength": 128},
+    "task_hash": {"type": "string", "pattern": "^sha256:[A-Fa-f0-9]{64}$"}
+  }
+}

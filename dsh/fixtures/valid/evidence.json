@@ -1,0 +1,54 @@
+{
+  "envelope_version": "1",
+  "evidence_id": "ev-20260825-001",
+  "incident_id": "inc-20260825-001",
+  "kind": "command_path",
+  "scope": {
+    "vehicle_id": "vehicle_hash_001",
+    "remote_session_id": "session_hash_001",
+    "message_id": "msg_hash_001",
+    "video_session_id": null
+  },
+  "time_window": {
+    "start": "2026-08-25T10:00:00Z",
+    "end": "2026-08-25T10:10:00Z",
+    "clock_domains": ["vehicle_monotonic", "cloud_monotonic", "wall_clock"]
+  },
+  "source": {
+    "system": "vehicle",
+    "service": "ztd_cloud_driving",
+    "instance": "vehicle-instance-hash",
+    "agent_version": "observability-agent@1",
+    "query_ref": "query://req-001"
+  },
+  "observation": {
+    "event_type": "remotejoystick_received",
+    "observed_at": "2026-08-25T10:00:01.123Z",
+    "monotonic_ns": 1234567890,
+    "attributes": {
+      "seq": 42,
+      "handler_received": true
+    }
+  },
+  "freshness": {
+    "data_end": "2026-08-25T10:00:01.123Z",
+    "age_ms": 7000,
+    "completeness": "complete"
+  },
+  "relation": {
+    "trace_id": "trace_hash_001",
+    "span_id": "span_hash_001",
+    "parent_ref": null,
+    "correlation_keys": ["incident_id", "vehicle_id", "message_id", "seq"]
+  },
+  "assessment": {
+    "role": "supports",
+    "claim_id": "claim-001",
+    "confidence": "medium"
+  },
+  "integrity": {
+    "content_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "created_at": "2026-08-25T10:10:05Z",
+    "retention_class": "incident-30d"
+  }
+}

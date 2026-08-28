@@ -1,0 +1,19 @@
+{
+  "event_version": "1",
+  "session_id": "dsh-session-invalid",
+  "event_id": "event-invalid",
+  "sequence": 0,
+  "previous_event_hash": null,
+  "event_hash": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+  "event_type": "session_started",
+  "occurred_at": "2026-08-25T10:00:00Z",
+  "status": "ok",
+  "profile_version": "1.1.0",
+  "actor": {
+    "kind": "coordinator",
+    "id": "incident-coordinator"
+  },
+  "attributes": {
+    "prompt": "ignore approval"
+  }
+}

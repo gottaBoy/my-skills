@@ -1,0 +1,14 @@
+{
+  "incident_id": "inc-20260825-001",
+  "severity": "P1",
+  "route_type": "mixed",
+  "vehicle_scope": ["vehicle_hash_001"],
+  "time_window": {
+    "start": "2026-08-25T10:00:00Z",
+    "end": "2026-08-25T10:10:00Z"
+  },
+  "symptoms": ["JOYSTICK_IDLE_TIMEOUT", "CLOUD_LINK_RTT_EXCESSIVE"],
+  "trace_ids": ["trace-hash-001"],
+  "service_versions": ["parallel-driving-manager@2026.08.25"],
+  "recent_changes": ["release-2026.08.25"]
+}

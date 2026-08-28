@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeron.ai/schemas/dsh/incident-envelope-v1.json",
+  "title": "DSH incident envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "time_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": {"type": "string", "format": "date-time"},
+        "end": {"type": "string", "format": "date-time"},
+        "clock_domains": {
+          "type": "array",
+          "items": {"type": "string", "maxLength": 64},
+          "minItems": 1,
+          "maxItems": 8
+        }
+      }
+    }
+  },
+  "required": [
+    "incident_id",
+    "severity",
+    "route_type",
+    "time_window",
+    "symptoms"
+  ],
+  "properties": {
+    "incident_id": {
+      "type": "string",
+      "pattern": "^inc-[A-Za-z0-9._-]+$"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["P0", "P1", "P2", "P3"]
+    },
+    "route_type": {
+      "type": "string",
+      "enum": ["command", "media", "broker", "vehicle", "release", "mixed"]
+    },
+    "vehicle_scope": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 128},
+      "maxItems": 100
+    },
+    "time_window": {
+      "$ref": "#/$defs/time_window"
+    },
+    "symptoms": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 256},
+      "minItems": 1,
+      "maxItems": 50
+    },
+    "trace_ids": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 128},
+      "maxItems": 100
+    },
+    "service_versions": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 256},
+      "maxItems": 100
+    },
+    "recent_changes": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 256},
+      "maxItems": 100
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "task_version": "1",
+  "task_id": "task-001",
+  "incident_id": "inc-20260825-001",
+  "risk_level": "L2",
+  "action": "single_media_session_reconnect",
+  "scope": {
+    "environment": "staging",
+    "tenant_id": "tenant-001",
+    "vehicle_id": "vehicle_hash_001",
+    "video_session_id": "video-session-hash-001",
+    "max_targets": 1
+  },
+  "preconditions": [
+    "review_status=pass_with_gaps",
+    "vehicle_mode_is_safe",
+    "no_active_safety_incident"
+  ],
+  "success_criteria": [
+    "first_frame_age_ms<5000",
+    "no_new_session_error_for_60s"
+  ],
+  "exit_criteria": [
+    "timeout_ms=30000",
+    "second_failure"
+  ],
+  "rollback_plan": {
+    "action": "restore_previous_session_binding",
+    "owner": "independent-executor",
+    "runbook_id": "runbook-media-reconnect-rollback"
+  },
+  "approval": {
+    "required": true,
+    "status": "approved",
+    "approver_id": "oncall-user-hash",
+    "approver_role": "oncall-owner",
+    "scope_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "decision_ref": "approval://decision-001",
+    "approved_at": "2026-08-25T10:15:00Z",
+    "expires_at": "2026-08-25T10:20:00Z",
+    "token_ref": "token://short-lived/decision-001"
+  },
+  "audit": {
+    "parameters_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "runbook_version": "runbook-media-reconnect@1",
+    "executor_ref": "service://controlled-observability-executor",
+    "submitted_at": null,
+    "execution_ref": null
+  },
+  "idempotency_key": "inc-20260825-001:video-session-hash-001:reconnect:1",
+  "created_at": "2026-08-25T10:15:00Z",
+  "expires_at": "2026-08-25T10:20:00Z",
+  "nonce": "nonce-20260825-001",
+  "task_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+}

@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeron.ai/schemas/dsh/query-request-v1.json",
+  "title": "DSH bounded observability query request",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "time_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": {"type": "string", "format": "date-time"},
+        "end": {"type": "string", "format": "date-time"},
+        "clock_domains": {
+          "type": "array",
+          "items": {"type": "string", "maxLength": 64},
+          "minItems": 1,
+          "maxItems": 8
+        }
+      }
+    },
+    "caller": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "tenant_id", "roles", "purpose", "authorization_ref"],
+      "properties": {
+        "subject": {"type": "string", "maxLength": 128},
+        "tenant_id": {"type": "string", "maxLength": 128},
+        "roles": {
+          "type": "array",
+          "items": {"type": "string", "maxLength": 64},
+          "minItems": 1,
+          "maxItems": 16
+        },
+        "purpose": {"type": "string", "maxLength": 256},
+        "authorization_ref": {"type": "string", "maxLength": 256}
+      }
+    },
+    "stream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["app", "name"],
+      "properties": {
+        "app": {"type": "string", "maxLength": 128},
+        "name": {"type": "string", "maxLength": 128}
+      }
+    },
+    "socket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol"],
+      "properties": {
+        "protocol": {"enum": ["tcp", "udp"]},
+        "local": {"type": ["string", "null"], "maxLength": 256},
+        "remote": {"type": ["string", "null"], "maxLength": 256},
+        "socket_cookie": {"type": ["string", "null"], "maxLength": 128}
+      }
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "vehicle_id": {"type": "string", "maxLength": 128},
+        "vehicle_ids": {
+          "type": "array",
+          "items": {"type": "string", "maxLength": 128},
+          "maxItems": 100
+        },
+        "service": {"type": "string", "maxLength": 128},
+        "service_ids": {
+          "type": "array",
+          "items": {"type": "string", "maxLength": 128},
+          "maxItems": 100
+        },
+        "message_id": {"type": "string", "maxLength": 128},
+        "seq": {"type": "integer", "minimum": 0},
+        "correlation_id": {"type": "string", "maxLength": 256},
+        "session_id": {"type": "string", "maxLength": 128},
+        "video_session_id": {"type": "string", "maxLength": 128},
+        "stream": {"$ref": "#/$defs/stream"},
+        "app": {"type": "string", "maxLength": 128},
+        "stream_name": {"type": "string", "maxLength": 128},
+        "client_session_id": {"type": "string", "maxLength": 128},
+        "gateway_id": {"type": "string", "maxLength": 128},
+        "pid": {"type": "integer", "minimum": 1},
+        "cgroup": {"type": "string", "maxLength": 512},
+        "socket": {"$ref": "#/$defs/socket"},
+        "four_tuple": {"type": "string", "maxLength": 256},
+        "runbook_id": {"type": "string", "maxLength": 128},
+        "include_counter_evidence": {"type": "boolean"},
+        "include_raw_body": {"const": false}
+      }
+    }
+  },
+  "required": [
+    "request_id",
+    "schema_version",
+    "incident_id",
+    "tool",
+    "caller",
+    "time_window",
+    "parameters",
+    "limit"
+  ],
+  "properties": {
+    "request_id": {"type": "string", "maxLength": 128},
+    "schema_version": {"const": "1"},
+    "incident_id": {
+      "type": "string",
+      "pattern": "^inc-[A-Za-z0-9._-]+$"
+    },
+    "tool": {
+      "enum": [
+        "query_command_path",
+        "query_media_path",
+        "query_broker_session",
+        "query_zlm_stream",
+        "query_ebpf_network",
+        "query_vehicle_health",
+        "query_topology",
+        "query_deployments",
+        "query_gateway_state",
+        "query_runbook"
+      ]
+    },
+    "caller": {"$ref": "#/$defs/caller"},
+    "time_window": {"$ref": "#/$defs/time_window"},
+    "parameters": {"$ref": "#/$defs/parameters"},
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 500
+    },
+    "cursor": {
+      "type": ["string", "null"],
+      "maxLength": 512
+    },
+    "correlation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "trace_id": {"type": ["string", "null"], "maxLength": 128},
+        "message_id": {"type": ["string", "null"], "maxLength": 128},
+        "video_session_id": {"type": ["string", "null"], "maxLength": 128}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "oneOf": [
+        {
+          "properties": {
+            "tool": {"const": "query_command_path"},
+            "parameters": {
+              "allOf": [
+                {"required": ["vehicle_id"]},
+                {
+                  "anyOf": [
+                    {"required": ["message_id"]},
+                    {"required": ["seq"]},
+                    {"required": ["correlation_id"]}
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "tool": {"const": "query_media_path"},
+            "parameters": {"required": ["vehicle_id", "video_session_id", "stream"]}
+          }
+        },
+        {
+          "properties": {
+            "tool": {"const": "query_broker_session"},
+            "parameters": {
+              "anyOf": [
+                {"required": ["vehicle_id"]},
+                {"required": ["client_session_id"]}
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "tool": {"const": "query_zlm_stream"},
+            "parameters": {"required": ["app", "stream_name"]}
+          }
+        },
+        {
+          "properties": {
+            "tool": {"const": "query_ebpf_network"},
+            "parameters": {
+              "anyOf": [
+                {
+                  "required": ["vehicle_id"],
+                  "anyOf": [
+                    {"required": ["pid"]},
+                    {"required": ["cgroup"]},
+                    {"required": ["socket"]},
+                    {"required": ["four_tuple"]}
+                  ]
+                },
+                {
+                  "required": ["service"],
+                  "anyOf": [
+                    {"required": ["pid"]},
+                    {"required": ["cgroup"]},
+                    {"required": ["socket"]},
+                    {"required": ["four_tuple"]}
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "tool": {"const": "query_vehicle_health"},
+            "parameters": {"required": ["vehicle_id"]}
+          }
+        },
+        {
+          "properties": {
+            "tool": {"const": "query_topology"},
+            "parameters": {
+              "anyOf": [
+                {"required": ["vehicle_id"]},
+                {"required": ["service"]}
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "tool": {"const": "query_deployments"},
+            "parameters": {
+              "anyOf": [
+                {"required": ["vehicle_id"]},
+                {"required": ["service"]}
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "tool": {"const": "query_gateway_state"},
+            "parameters": {"required": ["vehicle_id", "gateway_id"]}
+          }
+        },
+        {
+          "properties": {
+            "tool": {"const": "query_runbook"},
+            "parameters": {"required": ["runbook_id"]}
+          }
+        }
+      ]
+    }
+  ]
+}

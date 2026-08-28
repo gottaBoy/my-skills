@@ -1,0 +1,29 @@
+{
+  "source": "command-observability-adapter",
+  "query": {
+    "tool": "query_command_path",
+    "schema_version": "1",
+    "parameters_hash": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+    "time_window": {
+      "start": "2026-08-25T10:00:00Z",
+      "end": "2026-08-25T10:10:00Z"
+    }
+  },
+  "status": "partial",
+  "freshness": {
+    "observed_at": "2026-08-25T10:10:05Z",
+    "data_end": "2026-08-25T10:09:58Z",
+    "age_ms": 7000
+  },
+  "clock_domains": ["vehicle_monotonic", "cloud_monotonic", "wall_clock"],
+  "gaps": ["vehicle_tcp_receive"],
+  "evidence_ref": [
+    {
+      "ref": "evidence://ev-20260825-001",
+      "record_count": 12,
+      "content_hash": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+    }
+  ],
+  "records": [],
+  "next_cursor": null
+}

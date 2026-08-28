@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeron.ai/schemas/dsh/query-response-v1.json",
+  "title": "DSH bounded observability query response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source",
+    "query",
+    "status",
+    "freshness",
+    "clock_domains",
+    "gaps",
+    "evidence_ref",
+    "records"
+  ],
+  "properties": {
+    "source": {"type": "string", "maxLength": 128},
+    "query": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "schema_version", "parameters_hash", "time_window"],
+      "properties": {
+        "tool": {"type": "string", "maxLength": 128},
+        "schema_version": {"const": "1"},
+        "parameters_hash": {"type": "string", "pattern": "^sha256:[A-Fa-f0-9]{64}$"},
+        "time_window": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start", "end"],
+          "properties": {
+            "start": {"type": "string", "format": "date-time"},
+            "end": {"type": "string", "format": "date-time"}
+          }
+        }
+      }
+    },
+    "status": {
+      "enum": [
+        "ok",
+        "partial",
+        "no_data",
+        "stale",
+        "forbidden",
+        "source_unavailable",
+        "invalid_request"
+      ]
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observed_at", "data_end", "age_ms"],
+      "properties": {
+        "observed_at": {"type": "string", "format": "date-time"},
+        "data_end": {"type": "string", "format": "date-time"},
+        "age_ms": {"type": "integer", "minimum": 0}
+      }
+    },
+    "clock_domains": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 64},
+      "minItems": 1,
+      "maxItems": 8
+    },
+    "gaps": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 256},
+      "maxItems": 64
+    },
+    "evidence_ref": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ref", "record_count", "content_hash"],
+        "properties": {
+          "ref": {"type": "string", "maxLength": 512},
+          "record_count": {"type": "integer", "minimum": 0, "maximum": 500},
+          "content_hash": {"type": "string", "pattern": "^sha256:[A-Fa-f0-9]{64}$"}
+        }
+      },
+      "maxItems": 100
+    },
+    "records": {
+      "type": "array",
+      "items": {"type": "object"},
+      "maxItems": 500
+    },
+    "next_cursor": {
+      "type": ["string", "null"],
+      "maxLength": 512
+    }
+  }
+}

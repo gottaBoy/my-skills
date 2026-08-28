@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zeron.ai/schemas/dsh/session-event-v1.json",
+  "title": "DSH append-only session telemetry event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_version",
+    "session_id",
+    "event_id",
+    "sequence",
+    "previous_event_hash",
+    "event_hash",
+    "event_type",
+    "occurred_at",
+    "status",
+    "profile_version",
+    "actor"
+  ],
+  "properties": {
+    "event_version": {"const": "1"},
+    "session_id": {"type": "string", "maxLength": 128},
+    "event_id": {"type": "string", "maxLength": 128},
+    "sequence": {"type": "integer", "minimum": 0},
+    "previous_event_hash": {
+      "type": ["string", "null"],
+      "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+    },
+    "event_hash": {"type": "string", "pattern": "^sha256:[A-Fa-f0-9]{64}$"},
+    "parent_event_id": {"type": ["string", "null"], "maxLength": 128},
+    "event_type": {
+      "enum": [
+        "session_started",
+        "tool_called",
+        "evidence_added",
+        "hypothesis_updated",
+        "approval_decided",
+        "task_submitted",
+        "verification_completed",
+        "session_checkpoint_created",
+        "session_forked",
+        "session_replayed",
+        "session_finished"
+      ]
+    },
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["ok", "partial", "failed", "denied", "cancelled"]},
+    "duration_ms": {"type": ["integer", "null"], "minimum": 0},
+    "profile_version": {"type": "string", "maxLength": 64},
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": {"enum": ["coordinator", "specialist", "reviewer", "human", "scheduler", "executor"]},
+        "id": {"type": "string", "maxLength": 128}
+      }
+    },
+    "tool_name": {"type": ["string", "null"], "maxLength": 128},
+    "request_ref": {"type": ["string", "null"], "maxLength": 512},
+    "result_hash": {
+      "type": ["string", "null"],
+      "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+    },
+    "checkpoint_ref": {"type": ["string", "null"], "maxLength": 512},
+    "parent_session_id": {"type": ["string", "null"], "maxLength": 128},
+    "fork_strategy": {
+      "type": ["string", "null"],
+      "enum": ["replay_same_inputs", "replace_query_results", "change_policy", null]
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 512},
+      "maxItems": 100
+    },
+    "attributes": {
+      "type": "object",
+      "description": "Metadata only. Prompt, model output, raw parameters and raw tool results are forbidden."
+    }
+  }
+}

@@ -1,0 +1,314 @@
+{
+  "profile_id": "vehicle-cloud-observability",
+  "profile_version": "1.1.0",
+  "contract_schema_version": "1",
+  "design_status": "implemented",
+  "runtime_status": "unverified",
+  "runtime_requirements": {
+    "dsh_version": "PIN_REQUIRED",
+    "cordis_version": "PIN_REQUIRED",
+    "model_version": "PIN_REQUIRED",
+    "plugin_lock": "PIN_REQUIRED"
+  },
+  "model": {
+    "provider": "private-deepseek-compatible",
+    "endpoint_ref": "secret://dsh/model/endpoint",
+    "version_ref": "config://dsh/model/version",
+    "request_policy": {
+      "redact_before_model": true,
+      "allow_prompt_body_export": false,
+      "allow_tool_result_body_export": false,
+      "max_context_bytes": 262144
+    }
+  },
+  "tools": {
+    "read_only": [
+      "query_command_path",
+      "query_media_path",
+      "query_broker_session",
+      "query_zlm_stream",
+      "query_ebpf_network",
+      "query_vehicle_health",
+      "query_topology",
+      "query_deployments",
+      "query_gateway_state",
+      "query_runbook"
+    ],
+    "write": [],
+    "registry": [
+      {
+        "name": "query_command_path",
+        "adapter": "command-observability-adapter",
+        "capability": "command_path",
+        "request_schema": "schemas/query-request.schema.json",
+        "response_schema": "schemas/query-response.schema.json",
+        "required_parameters": ["vehicle_id", "message_id|seq|correlation_id"],
+        "response_kinds": ["command_path"],
+        "read_only": true
+      },
+      {
+        "name": "query_media_path",
+        "adapter": "media-observability-adapter",
+        "capability": "media_path",
+        "request_schema": "schemas/query-request.schema.json",
+        "response_schema": "schemas/query-response.schema.json",
+        "required_parameters": ["vehicle_id", "video_session_id", "stream"],
+        "response_kinds": ["media_path"],
+        "read_only": true
+      },
+      {
+        "name": "query_broker_session",
+        "adapter": "broker-observability-adapter",
+        "capability": "broker_session",
+        "request_schema": "schemas/query-request.schema.json",
+        "response_schema": "schemas/query-response.schema.json",
+        "required_parameters": ["vehicle_id|client_session_id"],
+        "response_kinds": ["broker"],
+        "read_only": true
+      },
+      {
+        "name": "query_zlm_stream",
+        "adapter": "zlm-observability-adapter",
+        "capability": "zlm_stream",
+        "request_schema": "schemas/query-request.schema.json",
+        "response_schema": "schemas/query-response.schema.json",
+        "required_parameters": ["app", "stream_name"],
+        "response_kinds": ["zlm"],
+        "read_only": true
+      },
+      {
+        "name": "query_ebpf_network",
+        "adapter": "ebpf-deepflow-adapter",
+        "capability": "ebpf_network",
+        "request_schema": "schemas/query-request.schema.json",
+        "response_schema": "schemas/query-response.schema.json",
+        "required_parameters": ["vehicle_id|service", "pid|cgroup|socket|four_tuple"],
+        "response_kinds": ["ebpf"],
+        "read_only": true
+      },
+      {
+        "name": "query_vehicle_health",
+        "adapter": "vehicle-health-adapter",
+        "capability": "vehicle_health",
+        "request_schema": "schemas/query-request.schema.json",
+        "response_schema": "schemas/query-response.schema.json",
+        "required_parameters": ["vehicle_id"],
+        "response_kinds": ["vehicle_health"],
+        "read_only": true
+      },
+      {
+        "name": "query_topology",
+        "adapter": "topology-adapter",
+        "capability": "topology",
+        "request_schema": "schemas/query-request.schema.json",
+        "response_schema": "schemas/query-response.schema.json",
+        "required_parameters": ["service|vehicle_id"],
+        "response_kinds": ["topology"],
+        "read_only": true
+      },
+      {
+        "name": "query_deployments",
+        "adapter": "deployment-adapter",
+        "capability": "deployments",
+        "request_schema": "schemas/query-request.schema.json",
+        "response_schema": "schemas/query-response.schema.json",
+        "required_parameters": ["service|vehicle_id"],
+        "response_kinds": ["change"],
+        "read_only": true
+      },
+      {
+        "name": "query_gateway_state",
+        "adapter": "gateway-state-adapter",
+        "capability": "gateway_state",
+        "request_schema": "schemas/query-request.schema.json",
+        "response_schema": "schemas/query-response.schema.json",
+        "required_parameters": ["vehicle_id", "gateway_id"],
+        "response_kinds": ["broker", "vehicle_health"],
+        "read_only": true
+      },
+      {
+        "name": "query_runbook",
+        "adapter": "runbook-adapter",
+        "capability": "runbook",
+        "request_schema": "schemas/query-request.schema.json",
+        "response_schema": "schemas/query-response.schema.json",
+        "required_parameters": ["runbook_id"],
+        "response_kinds": ["change"],
+        "read_only": true
+      }
+    ],
+    "limits": {
+      "default_window_seconds": 600,
+      "maximum_window_seconds": 3600,
+      "maximum_records": 500,
+      "maximum_concurrent_queries": 6,
+      "require_structured_parameters": true,
+      "allow_raw_shell": false,
+      "allow_raw_sql": false,
+      "allow_raw_promql": false,
+      "allow_raw_logql": false
+    },
+    "required_response_fields": [
+      "source",
+      "query",
+      "status",
+      "freshness",
+      "clock_domains",
+      "gaps",
+      "evidence_ref"
+    ]
+  },
+  "skills": [
+    "command-reliability",
+    "video-qoe",
+    "network-correlation",
+    "vehicle-diagnostics",
+    "cloud-change-analysis",
+    "evidence-reviewer",
+    "release-slo-verification",
+    "incident-runbook"
+  ],
+  "agents": {
+    "coordinator": {
+      "id": "incident-coordinator",
+      "max_parallel_children": 6,
+      "requires_reviewer_before_high_confidence": true
+    },
+    "specialists": [
+      "vehicle-diagnostics",
+      "network-correlation",
+      "video-qoe",
+      "command-reliability",
+      "cloud-change-analysis",
+      "evidence-reviewer"
+    ],
+    "specialist_policy": {
+      "read_only_tools_only": true,
+      "must_return_supporting_evidence": true,
+      "must_return_counter_evidence": true,
+      "must_mark_missing_data": true
+    }
+  },
+  "sessions": {
+    "storage_mode": "append_only",
+    "supports_replay": true,
+    "supports_fork": true,
+    "content_export_default": "metadata_and_evidence_refs_only",
+    "retention_policy_ref": "config://dsh/session/retention",
+    "encryption_required": true,
+    "event_sequence_required": true,
+    "hash_chain_required": true,
+    "checkpoint_interval_events": 25,
+    "fork_requires_parent_checkpoint": true,
+    "replay_forbids_production_writes": true
+  },
+  "scheduler": {
+    "triggers": [
+      "alert",
+      "post_deploy",
+      "periodic",
+      "manual"
+    ],
+    "deduplication_key": "incident_id",
+    "max_active_sessions": 4,
+    "timeout_seconds": 300,
+    "max_tool_calls": 30,
+    "max_cost_units": 100,
+    "cooldown_seconds": 600,
+    "state_store_ref": "config://dsh/scheduler/state-store",
+    "fallback": "human_queue",
+    "persist_jobs": true,
+    "resume_after_restart": true,
+    "circuit_breaker": true,
+    "must_not_block_business_path": true
+  },
+  "review_and_approval": {
+    "ui_ref": "service://dsh-war-room",
+    "rbac_required": true,
+    "p0_p1_requires_human": true,
+    "vehicle_scope_requires_human": true,
+    "approval_expiry_seconds": 900,
+    "roles": [
+      "incident-reader",
+      "evidence-reviewer",
+      "oncall-owner",
+      "change-approver",
+      "executor"
+    ],
+    "scope_binding": ["tenant_id", "vehicle_ids", "service_ids"],
+    "separation_of_duties": {
+      "approver_cannot_execute": true,
+      "executor_cannot_approve": true,
+      "reviewer_required_for_high_confidence": true
+    },
+    "revocation_supported": true,
+    "approval_token_binding": ["task_hash", "scope_hash", "incident_id", "expires_at"],
+    "audit_required": true
+  },
+  "controlled_execution": {
+    "enabled": false,
+    "executor_ref": "service://controlled-observability-executor",
+    "dsh_direct_execution": false,
+    "short_lived_credentials": true,
+    "signed_tasks": true,
+    "idempotency_required": true,
+    "rollback_required": true
+  },
+  "telemetry": {
+    "protocol": "otlp",
+    "signal": "logs",
+    "event_schema": "schemas/session-event.schema.json",
+    "export_body": false,
+    "batching": true,
+    "collector_ref": "service://otel-collector/dsh-session",
+    "authentication": "mTLS",
+    "tls_required": true,
+    "sampling": {
+      "default": "metadata_only",
+      "error_events": "always",
+      "tool_results": "reference_only"
+    },
+    "wal": {
+      "enabled": true,
+      "max_bytes": 67108864,
+      "replay_idempotency_required": true
+    },
+    "drop_counter_names": [
+      "dsh_session_telemetry_dropped_total",
+      "dsh_session_telemetry_export_errors_total"
+    ],
+    "failure_isolated": true,
+    "drop_counter_required": true
+  },
+  "sandbox": {
+    "network_mode": "allowlisted_adapters_only",
+    "egress_allowlist_refs": [
+      "config://dsh/egress/observability-adapters",
+      "config://dsh/egress/model-endpoint"
+    ],
+    "host_mounts": [],
+    "linux_capabilities": [],
+    "seccomp_profile_ref": "config://dsh/sandbox/seccomp-default",
+    "process_allowlist_ref": "config://dsh/sandbox/process-allowlist",
+    "resource_limits": {
+      "cpu_millis": 1000,
+      "memory_mb": 1024,
+      "pids": 128,
+      "wall_time_seconds": 300
+    },
+    "red_team_suite_ref": "config://dsh/security/red-team-suite",
+    "production_secrets": false,
+    "filesystem_mode": "ephemeral_read_only",
+    "resource_budget_ref": "config://dsh/sandbox/resource-budget"
+  },
+  "evidence": {
+    "incident_schema": "schemas/incident-envelope.schema.json",
+    "query_schema": "schemas/query-request.schema.json",
+    "envelope_schema": "schemas/evidence-envelope.schema.json",
+    "confidence_gate": {
+      "high_requires_reviewer": true,
+      "missing_critical_source_maximum": "medium",
+      "clock_domain_mismatch_is_not_duration": true
+    }
+  }
+}
