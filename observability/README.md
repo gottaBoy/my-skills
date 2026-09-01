@@ -1,6 +1,6 @@
 # 车云端可观测性文档导航
 
-更新时间：`2026-08-26`
+更新时间：`2026-08-30`
 
 本文档组按实际职责拆分，便于设计评审、开发跟踪、测试验收和 DSH 进度治理。
 完整的字段、代码挂点、历史问题和详细决策仍集中保留在
@@ -34,7 +34,7 @@
       <td><a href="03-three-links-tracing.md">03-three-links-tracing.md</a></td>
       <td>指令、视频、状态上报三条车-云-端链路的 Trace/Span 设计</td>
       <td>车端、云端、前端、ZLMediaKit</td>
-      <td><code>approved</code>：业务事件和上下文待实现</td>
+      <td><code>implemented/unverified</code>：云端到车端控制分段已落地，统一上下文和运行闭环待验证</td>
     </tr>
     <tr>
       <td><a href="04-frontend-black-screen.md">04-frontend-black-screen.md</a></td>
@@ -54,6 +54,36 @@
       <td>车端平台、数据平台、可观测性、测试</td>
       <td><code>approved</code>：设计已记录，待目标车 POC</td>
     </tr>
+    <tr>
+      <td><a href="07-vehicle-rtsp-reconnect-analysis.md">07-vehicle-rtsp-reconnect-analysis.md</a></td>
+      <td>车端 RTSP 频繁重拉、OTel 行为变化、push 竞态、编码队列和验收标准</td>
+      <td>车端 RTSP、GStreamer、云端拉流、测试、现场支持</td>
+      <td><code>implemented/unverified</code>：代码已修改，待编译和实车验证</td>
+    </tr>
+    <tr>
+      <td><a href="08-zlmediakit-ebpf-deepflow-databuff.md">08-zlmediakit-ebpf-deepflow-databuff.md</a></td>
+      <td>ZLMediaKit Docker、宿主机 eBPF/DeepFlow、exporter/API、OTLP 与 DataBuff 上传</td>
+      <td>流媒体、网络、可观测性、数据平台、现场支持</td>
+      <td><code>approved/unverified</code>：方案已记录，待目标主机和后端联调</td>
+    </tr>
+    <tr>
+      <td><a href="09-rtsp-timestamp-and-deepflow-correlation.md">09-rtsp-timestamp-and-deepflow-correlation.md</a></td>
+      <td>车端 RTSP 时间戳、RTP 时间、ZLMediaKit 收包和 DeepFlow 网络事实的关联边界</td>
+      <td>车端 RTSP、流媒体、网络、可观测性、测试</td>
+      <td><code>approved/unverified</code>：关联方案已记录，待两端收包事件和目标环境验证</td>
+    </tr>
+    <tr>
+      <td><a href="10-ziot-prometheus-control-plane.md">10-ziot-prometheus-control-plane.md</a></td>
+      <td>ziot Actuator/Prometheus、并行驾驶控制面阶段指标、ZLM/DeepFlow 关联</td>
+      <td>云端、流媒体、可观测性、测试、现场支持</td>
+      <td><code>implemented/unverified</code>：代码和配置已落地，待启动端点与目标环境采集验证</td>
+    </tr>
+    <tr>
+      <td><a href="11-k8s-deepflow-databuff-deployment-plan.md">11-k8s-deepflow-databuff-deployment-plan.md</a></td>
+      <td>K8s 部署 DeepFlow、OTel Collector、DataBuff 的阶段方案、边界和验收</td>
+      <td>平台、可观测性、网络、数据平台、现场支持</td>
+      <td><code>implemented/verified-poc</code>：DeepFlow 单节点 POC 已部署，内部受控流量已写入 ClickHouse 且 Grafana API 已验证；外部 Docker/ECS Agent、真实指令关联和生产 HA 待后续</td>
+    </tr>
   </tbody>
 </table>
 
@@ -65,9 +95,21 @@
 4. 浏览器、WebRTC、黑屏状态机和前端埋点写入 `04`。
 5. 状态、证据、验收、阻塞和发布结论写入 `05`，并同步 `../loop/STATE.md`。
 6. GreptimeDB、Arrow、Parquet、WAL/DataBuff 和数据上传策略写入 `06`，并同步完整设计基线。
-7. 运行逻辑、阈值或协议发生变化时，专题文档和完整设计基线必须在同一变更中更新。
-8. 专题文档不得把设计状态写成已部署；必须区分 `implemented`、`verified`、`approved`
+7. 车端 RTSP 重拉、GStreamer pipeline、appsrc push 协议和编码队列写入 `07`。
+8. ZLMediaKit Docker、DeepFlow/eBPF、exporter/API、OTLP 和 DataBuff 接入写入 `08`。
+9. RTSP 时间戳、RTP 收发关联和 DeepFlow 网络耗时边界写入 `09`。
+10. ziot Prometheus 暴露、控制面阶段指标和云端采集验证写入 `10`。
+11. K8s 部署、Collector 路由、DeepFlow Agent 覆盖和 DataBuff 联调写入 `11`，
+    可部署模板统一放在工作区根目录 `my-otel`。
+12. 运行逻辑、阈值或协议发生变化时，专题文档和完整设计基线必须在同一变更中更新。
+13. 专题文档不得把设计状态写成已部署；必须区分 `implemented`、`verified`、`approved`
    和 `blocked`。
+14. 截至 `2026-08-30`，ziot Prometheus 端点和自定义指标注册已经由现场输出验证；
+    业务操作后指标增长以及
+    ZLMediaKit 与 zlmexporter 容器正在运行。DeepFlow 单节点 POC 已完成基础部署、
+    健康、Agent 注册、平台同步和 Kubernetes 内部受控流量写入 ClickHouse 验证；
+    Collector/DataBuff 持续闭环、真实指令关联以及 ECS/外部 Docker Agent 仍需按
+    目标流量继续验收。
 
 ## 快速入口
 
@@ -76,6 +118,10 @@
 - [前端现状与本地埋点](../full-link-observability.md#912-前端-otelrum-与-deepflow-接入设计)
 - [当前工作项进度](../full-link-observability.md#913-当前工作项进度)
 - [GreptimeDB Edge 与 Arrow 车云数据平面](06-greptime-edge-and-arrow.md)
+- [车端 RTSP 重拉分析与修复记录](07-vehicle-rtsp-reconnect-analysis.md)
+- [ZLMediaKit eBPF/DeepFlow 与 DataBuff 方案](08-zlmediakit-ebpf-deepflow-databuff.md)
+- [RTSP 时间戳与 DeepFlow 关联方案](09-rtsp-timestamp-and-deepflow-correlation.md)
+- [ziot Prometheus 与控制面指标](10-ziot-prometheus-control-plane.md)
 - [DSH Integration Pack](../dsh/README.md)
 - [现场验证步骤](../full-link-observability.md#92-第一阶段现场验证步骤)
 

@@ -1,6 +1,30 @@
 # 03 车-云-端三条链路全链路追踪
 
-更新时间：`2026-08-27`
+更新时间：`2026-08-29`
+
+## 当前阶段范围（2026-08-29）
+
+当前先收敛验证范围，不依赖驾驶仓埋点，边界为：
+
+```text
+指令进入 ziot 云端
+  -> 云端接收/排队/latest-only/设备发送
+  -> 车端 TCP body 接收
+  -> 解密/解析/同步分发
+  -> remotejoystick handler
+  -> ROS publish
+```
+
+本阶段目标是回答：
+
+- 指令进入 ziot 后，云端转发和设备发送是否变慢、合并、丢弃或失败；
+- 云端发送完成后，车端是否收到并完成 body 接收、解密、解析、handler 和 ROS publish；
+- DeepFlow/eBPF 的网络事实是否能解释云端发送到车端接收之间的异常。
+
+本阶段暂不纳入驾驶仓 `send_start/send_result`，也不把 ROS publish 返回当作
+安全门禁、控制器或底盘已经执行。跨节点单条消息关联优先使用
+`messageId + source_seq + correlationId`；未完成时钟同步时，不直接用两台机器的
+墙上时间相减计算毫秒级云端到车端耗时。
 
 ## 标识符规则
 
@@ -76,17 +100,13 @@ video recovery trace
 普通状态消息和 250ms `getStats()` tick 不逐条创建 Span；仅对首次拉流、重连、黑屏恢复、
 超时、协议异常和状态异常建立短生命周期 Trace。
 
-## `remotejoystick` 超时的三段式追踪
+## `remotejoystick` 云端到车端分段追踪
 
 `JOYSTICK_IDLE_TIMEOUT` 只说明车端在规定窗口内没有观察到新的
-`remotejoystick` handler 处理结果。要回答“是手柄没发、云端没转发，还是车端没处理”，
+`remotejoystick` handler 处理结果。当前阶段要回答“云端是否转发、车端是否收到并处理”，
 必须对同一帧使用 `messageId + seq + correlationId` 关联以下时间点：
 
 ```text
-驾驶舱：
-  cockpit_send_start/end
-  cockpit_send_result
-
 云端：
   cloud_receive
   cloud_latest_mailbox_enter/leave
@@ -102,13 +122,18 @@ video recovery trace
   ros_publish_start/end
 ```
 
+当前阶段先使用云端和车端两侧证据。驾驶仓发送事件保留在完整设计中，暂不作为
+本阶段验收前提。两侧事件需要携带同一关联键，才能判断云端发送完成后车端是否出现
+对应消息。
+
 三类故障的判定口径：
 
 | 证据组合 | 结论 |
 |---|---|
-| 驾驶舱 `seq` 在增长，但云端没有对应 `messageId/seq` | 驾驶舱到云端接入链路丢失，查网络、连接、认证或云端入口 |
 | 云端有接收但没有 send start，或 dedup/coalesced 明显增长 | 云端去重、latest-only 信箱或房间转发问题 |
 | 云端 `inflight_slow`，且 `send_completion_latency` 超过 300ms | 云端设备发送器或底层 TCP write 回调长时间未完成；latest-only 期间后续帧只覆盖 pending |
+| 云端有 `send_complete`，车端没有对应 `transport_dispatch` | 范围收敛到云端发送完成回调之后、车端应用分发之前；结合 DeepFlow 重传、RTO、socket queue 和车端调度继续判断 |
+| 云端和车端都有同一 `messageId/seq`，但车端阶段耗时增长 | 指令已到车端，继续按 body 接收、解密、解析、handler 和 ROS publish 分段定位 |
 | 车端 `body_receive_us` 高 | 长度头已到达，但完整 body 接收慢；查网络分片/重传、接收调度和对端写出 |
 | 车端 `decrypt_us/parse_us/parse_to_dispatch_us` 高 | 车端 AES、JSON 解析或解析后同步分发阶段慢 |
 | 车端 `listener_dispatch_gap_us` 超过 MRC 窗口，但本帧 transport 正常 | 车端长时间未开始分发 remotejoystick；结合前一 handler 和云端序列判断停发、未送达或监听线程占用 |
@@ -168,9 +193,10 @@ pending age、send duration 和 coalesced total。当前云端重建下行消息
 `correlation_id`。其中 `listener_dispatch_gap_us` 是同一监听线程两次开始分发
 remotejoystick 的间隔，包含前一同步 handler、其他消息处理和当前收包过程，不是纯网络耗时。
 
-驾驶舱仍未记录统一的 send start/result，车端也没有 TCP 长度头到达、内核收包、ROS 下游消费
-和底盘最终执行确认。因此当前可以确认云端 latest-only 写出是否慢、车端 body/decrypt/parse、
-handler 和 ROS publish 调用是否慢，但单独一次 gap 仍不能唯一证明“驾驶舱停发”或“网络丢失”。
+当前不要求驾驶仓记录统一的 send start/result；车端也没有 TCP 长度头到达、内核收包、
+ROS 下游消费和底盘最终执行确认。因此当前可以确认云端 latest-only 写出是否慢、车端
+body/decrypt/parse、handler 和 ROS publish 调用是否慢，但不能证明 ROS publish 之后已经
+被控制器或底盘执行。
 `cloudLinkPing` 只作为网络旁证，不替代 `remotejoystick` 的业务序列探针。
 
 `remotejoystick` 频率高，不建议为每帧创建完整远端 Trace。推荐按采样比例保留正常帧，

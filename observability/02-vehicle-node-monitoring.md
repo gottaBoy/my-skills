@@ -1,6 +1,6 @@
 # 02 车端节点性能监控
 
-更新时间：`2026-08-27`
+更新时间：`2026-08-29`
 
 ## 目标
 
@@ -42,6 +42,43 @@
     <tr><td>系统</td><td>车载 host PID/network、cgroup、内核 BPF 能力</td><td>BTF、BPF syscall、JIT、capability、CO-RE、namespace 可见性、Agent 版本</td></tr>
   </tbody>
 </table>
+
+### `ztd_rtsp` 当前本地实现状态
+
+车端 RTSP 本地诊断代码已落到：
+
+```text
+aura/src/ztd/ztd_network/ztd_rtsp/include/ztd_rtsp/rtsp_stream.hpp
+aura/src/ztd/ztd_network/ztd_rtsp/src/vehicle/rtsp_stream.cpp
+```
+
+当前实现状态为 `implemented/unverified`：代码已补齐主要 ROS -> appsrc -> encoder -> RTP
+挂点和低频摘要，但本轮开发机未发现 `colcon`、`cmake`、`pkg-config`，尚未完成编译、
+部署二进制核对和长时间实车验证。
+
+已覆盖的车端 RTSP 观测内容：
+
+| 路径 | 观测 |
+|---|---|
+| ROS callback | callback、跳过、空帧、非法时间戳、帧年龄、callback interval |
+| appsrc | `need-data`、旧 callback、demand age、demand-to-push |
+| raw frame/push | stale drop、unsupported encoding、invalid payload、alloc/map、copy、push-buffer |
+| flow | `GST_FLOW_OK`、`FLUSHING`、`EOS`、`NOT_LINKED`、`NOT_NEGOTIATED` 和其他 error |
+| pipeline | configure、configure error、replace、destroy、generation |
+| encoder/RTP | encoder output、keyframe、capture timestamp、RTP packet/bytes、首个 output/packet |
+| bus | GStreamer ERROR、WARNING、EOS 和 bus unavailable |
+
+日志摘要：
+
+```text
+[latency_1s]  一秒延迟分布
+[rtsp_diag]   十秒计数窗口
+[rtsp_timing] 十秒耗时分布
+[gst_bus]     GStreamer bus 错误和告警
+```
+
+用户最新实车反馈为前端暂时没有继续“重拉”，普通摄像头延迟和 push 成功状态正常；
+但现场日志仍是旧版简化 `rtsp_diag` 格式，尚未确认上述完整字段来自新部署二进制。
 
 ## 分阶段实施
 

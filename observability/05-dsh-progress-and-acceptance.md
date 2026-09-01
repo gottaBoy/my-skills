@@ -1,6 +1,6 @@
 # 05 DSH 进度与验收
 
-更新时间：`2026-08-27`
+更新时间：`2026-08-29`
 
 ## 状态定义
 
@@ -22,10 +22,12 @@
     <tr><td>前端本地结构化埋点</td><td><code>verified</code></td><td>500 条环形缓存、sequence、performance.now、过滤订阅、异常隔离；Vite build 通过</td><td>补单元测试和真实现场回归</td></tr>
     <tr><td>黑屏恢复误重载防护</td><td><code>implemented</code></td><td>internalCode 锁定、旧响应隔离、共享租约、stats 门禁、render eligibility</td><td>Playwright、隐藏 Tab、换车、HMR 和真实黑屏</td></tr>
     <tr><td>后端 JVM 单调耗时</td><td><code>verified</code></td><td>EventBus/queue/send 同 JVM duration 字段已消费，Maven compile 通过</td><td>部署后确认字段非负并接入指标</td></tr>
-    <tr><td>车端业务事件与 monotonic ledger</td><td><code>approved</code></td><td>已定义控制和视频挂点、字段、队列和资源预算；RTSP 已补充部分本地停帧和时间统计保护</td><td>实现 <code>ztd_observability</code>、完整事件出口和两个服务接入</td></tr>
+    <tr><td>车端 RTSP 本地诊断埋点</td><td><code>implemented/unverified</code></td><td><code>ztd_rtsp</code> 的 ROS callback、appsrc demand/push、GStreamer flow、pipeline 生命周期、encoder、RTP 和 bus 诊断已落到 <code>RtspStream</code>；实车当前未继续出现前端“重拉”，但新代码尚未完成编译和部署二进制核对</td><td>编译部署后确认完整 <code>rtsp_diag</code>/<code>rtsp_timing</code>/<code>gst_bus</code> 字段，并完成至少 30 分钟回归</td></tr>
+    <tr><td>云端进入到车端的 <code>remotejoystick</code> 分段埋点</td><td><code>implemented/unverified</code></td><td>暂不依赖驾驶仓；ziot latest-only 在途/完成、TCP write/连接生命周期，以及车端 body receive/decrypt/parse/dispatch、handler/publish/MRC 日志已落地</td><td>执行一条真实云端下发指令，确认云端指标/日志增长、同一 <code>messageId/seq/correlationId</code> 在车端出现，并验证 DeepFlow/Collector/DataBuff；ROS 下游消费和底盘执行暂不纳入</td></tr>
+    <tr><td>车端业务事件与 monotonic ledger</td><td><code>approved</code></td><td>已定义控制和视频统一事件模型、字段、队列和资源预算；不等同于 RTSP 本地诊断代码已接入统一出口</td><td>实现 <code>ztd_observability</code>、完整事件出口、统一 trace context 和两个服务接入</td></tr>
     <tr><td>车端 eBPF/DeepFlow 节点监控</td><td><code>approved</code></td><td>已定义 V0 能力检查、首期 tracepoint 和四组性能对照</td><td>目标车验证 BTF、权限、Agent 兼容性</td></tr>
     <tr><td>三链路 Trace Context</td><td><code>approved</code></td><td>已定义 command/video/status 的 Trace/Span 和旧版本降级</td><td>实现控制 headers、视频预绑定和云端传播</td></tr>
-    <tr><td>OTel/Gateway/Collector/DeepFlow</td><td><code>approved</code></td><td>架构和故障隔离已记录，尚未部署</td><td>先做单车单路 POC，验证采样、脱敏、性能和断网恢复</td></tr>
+    <tr><td>OTel/Gateway/Collector/DeepFlow</td><td><code>implemented/verified-poc</code></td><td>DeepFlow 7.1.002 已在 K8s <code>deepflow</code> Namespace 完成单节点 POC；Server 健康、Agent 注册、Kubernetes/eBPF 平台同步、内部受控 HTTP 流量写入 ClickHouse 和 Grafana API 均已验证</td><td>验证真实云端到车端指令流量关联、采样脱敏、性能、断网恢复，并接入 ECS/外部 Docker Agent；DeepFlow flow 到 DataBuff 的自动导出仍需单独验收</td></tr>
     <tr><td>GreptimeDB Edge/Arrow 车端数据平面</td><td><code>approved</code></td><td>已记录 Edge/Edge Manager 边界、Arrow 内存/批量交换、Parquet 归档、Trace Context 和 WAL/DataBuff 断点续传边界；Flow batching 与向量能力纳入版本校验</td><td>完成目标车版本矩阵、单车 Edge POC、Arrow/IPC 生命周期、断网恢复、Flow/向量能力验证和四组性能对照</td></tr>
     <tr><td>DSH Integration Pack 与进度治理</td><td><code>implemented</code></td><td>Profile、6 个 Schema、工具注册表、正负例夹具、依赖无关校验脚本、专题文档、完整基线和 <code>loop/STATE.md</code> 已同步；本地契约校验通过</td><td>部署 DSH/Cordis runtime 和适配器后，按能力矩阵逐项留存运行证据</td></tr>
   </tbody>
@@ -81,9 +83,10 @@ DSH 只能基于查询到的事件、Trace、Metric、Log、ZLMediaKit、Broker 
 2. [完整设计基线](../full-link-observability.md) 的对应章节或工作项。
 3. [`../loop/STATE.md`](../loop/STATE.md) 的一条追加记录。
 
-本轮完成 GreptimeDB Edge/Arrow 专题设计、公开资料边界校正和 DSH 进度同步；没有修改
-车端 C++ 运行逻辑，也没有部署 GreptimeDB Edge、OTel、Collector、DeepFlow、DataBuff
-或执行目标车辆验证。公开案例的吞吐、CPU、内存和压缩数字仍只作为 POC 压测输入。
+本轮完成 GreptimeDB Edge/Arrow 专题设计、公开资料边界校正和 DSH 进度同步；另有
+车端 `ztd_rtsp` 本地诊断代码修改，但尚未部署统一 `ztd_observability`、OTel、Collector、
+DeepFlow、DataBuff，也没有完成当前代码的编译和目标车辆长时间验证。公开案例的吞吐、
+CPU、内存和压缩数字仍只作为 POC 压测输入。
 
 ## 2026-08-26 关机检查点
 
@@ -92,7 +95,8 @@ DSH 只能基于查询到的事件、Trace、Metric、Log、ZLMediaKit、Broker 
 - POC 工具已落盘到 `aura/tools/observability_poc/`。
 - 尚未运行本机单元测试、能力矩阵、WAL 恢复、Arrow/IPC 或四组性能 smoke test。
 - 尚未安装 `pyarrow`，也未部署 GreptimeDB Edge、OTel、DeepFlow 或 OTAP。
-- 尚未修改 `ztd_cloud_driving`、`ztd_rtsp` 的生产运行逻辑。
+- 本轮已修改 `ztd_rtsp` 车端 `RtspStream` 运行逻辑，范围包含 push 并发/生命周期保护和本地诊断；
+  尚未修改 operator、takeover/Redis 或统一 OTel/DeepFlow 生产链路。
 - 所有 GreptimeDB Edge/Arrow 工作项继续保持 `approved`，不得标记为实车
   `implemented` 或 `verified`。
 

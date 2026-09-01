@@ -1536,7 +1536,7 @@ ice_state
 | WebRTC stats in-flight 门禁 | `implemented` | 前端 | `2026-08-25` | 每实例 250ms stats 轮询互斥 | `WebRtcPlayer.vue`；前端 Vite build 成功 | 补慢 `getStats()`、重连代际和多路播放器专项测试 |
 | 黑屏恢复与误重载防护 | `implemented` | 前端 | `2026-08-25` | 播放身份、共享租约、渲染资格和恢复状态机 | internalCode 锁定、旧响应隔离、shared session、render eligibility 等代码已落地 | 尚需 Playwright、隐藏 Tab、HMR、换车和真实黑屏现场回归 |
 | 本地结构化埋点出口 | `verified` | 前端 | `2026-08-26` | 固定 500 条环形缓存、页面序号、浏览器单调时间、过滤订阅、异常隔离和现场观察 | `zeron-cloud-web/src/modules/parallel-driving-manager-ui/utils/observability.ts`；`npm exec -- vite build --mode development` 成功，文档/冲突标记静态检查通过 | 尚无专门单元测试；后续由 OTel/RUM Adapter 复用，不直接视为生产上报 |
-| 现场 `JOYSTICK_IDLE_TIMEOUT` 证据与第一阶段埋点 | `implemented` | 车端/云端/可观测性 | `2026-08-27` | 复核 2026-08-25 的 3 次 MRC；补云端 latest-only 在途/完成指标、TCP write/连接生命周期，以及车端 body receive/decrypt/parse/dispatch、handler/publish/MRC 日志 | `ParallelDrivingRoom`、`ParallelDrivingLatencyMetrics`、`ParallelDrivingCustomMessageHandler`、`VertxTcpClient`、`TcpClient`、`TcpDeviceSession`、`cloud_driving_client.hpp/.cpp`、`cloud_driving_vehicle.cpp`；云端单测和 Maven reactor 成功，车端网络客户端独立语法检查成功；本文 9.1.1.1/9.1.1.2 和专题文档 02/03 | 当前开发机无 ROS 2/colcon，待目标镜像编译、部署和现场验证；驾驶舱 send、TCP 长度头到达/内核收包、ROS 下游消费和底盘执行仍未埋点，根因尚未完全闭环 |
+| 云端进入到车端的 `remotejoystick` 分段埋点 | `implemented/unverified` | 车端/云端/可观测性 | `2026-08-29` | 暂不依赖驾驶仓；覆盖 ziot latest-only 在途/完成、TCP write/连接生命周期，以及车端 body receive/decrypt/parse/dispatch、handler/publish/MRC 日志 | `ParallelDrivingRoom`、`ParallelDrivingLatencyMetrics`、`ParallelDrivingCustomMessageHandler`、`VertxTcpClient`、`TcpClient`、`TcpDeviceSession`、`cloud_driving_client.hpp/.cpp`、`cloud_driving_vehicle.cpp`；ziot `/actuator/prometheus` 和自定义指标注册已有现场输出证据；专题文档 02/03/10 | 待执行一条真实云端下发指令，确认云端指标/日志增长、同一 `messageId/seq/correlationId` 在车端出现，并验证 DeepFlow/Collector/DataBuff；ROS 下游消费和底盘执行暂不纳入 |
 | OTel/RUM Exporter | `approved` | 可观测性/前端 | `2026-08-25` | 批量、采样、熔断、`sendBeacon()` 和失败隔离 | 本文档 9.1.2 已完成设计 | 尚未实现 Exporter；需先定义 OTLP/RUM payload 和性能预算验收 |
 | Trace/Span 前端上下文 | `approved` | 可观测性/前端 | `2026-08-25` | traceId、spanId、parentSpanId、correlationId 生命周期 | 已完成 session/trace/span 职责和 Trace 拓扑设计 | 尚未加入 `ParallelDrivingObservation` 实际字段和 SDK 生成逻辑 |
 | 信令 HTTP Trace Context | `approved` | 前端/云端 | `2026-08-25` | `/index/api/webrtc` 的 W3C `traceparent` 传播 | 已记录传播边界和 CORS 要求 | 尚未实现浏览器注入、服务端接收和上下文验证 |
@@ -2373,6 +2373,13 @@ Agent 对 host PID/network namespace 的可见性
 #### 9.1.8 三条车-云-端链路的全链路追踪
 
 三条链路共用车辆、驾驶舱和远控会话关联，但不共用同一个长生命周期 Trace：
+
+**当前阶段收敛（2026-08-29）：** 暂不依赖驾驶仓埋点，先验收
+`ziot cloud_receive -> latest-only/send_complete -> vehicle TCP body receive ->
+decrypt/parse/dispatch -> handler -> ROS publish`。本阶段只判断云端进入后的下行
+链路是否有发送阻塞、网络异常、车端接收/解析/处理变慢；ROS publish 返回不代表
+下游控制器或底盘已经执行。DeepFlow/eBPF 作为 TCP、进程、容器和调度事实来源，
+不替代云端/车端业务事件，也不单独提供单条消息的业务关联。
 
 <table border="1" cellpadding="6" cellspacing="0">
   <thead>
