@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "MRC 状态与安全输出生命周期",
+    "output": "observability/diagrams/mrc-command-lifecycle.lifecycle.html",
+    "viewBox": [1040, 600],
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "status-to-output",
+        "label": "状态到安全输出",
+        "focus": ["normal", "mrc0", "mrcActive", "braking", "stopped"],
+        "note": "页面、手柄和 health_arbitrator 的输入最终在 e2e 形成安全控制输出。"
+      },
+      {
+        "id": "trigger-sources",
+        "label": "MRC 触发来源",
+        "focus": ["mrcActive"],
+        "note": "云端页面、手柄超时和 health_arbitrator 的结果在 e2e 汇聚。"
+      },
+      {
+        "id": "recovery-boundary",
+        "label": "停止与恢复边界",
+        "focus": ["mrcActive", "braking", "stopped", "recoverRequest", "recoverAccepted", "recovered"],
+        "note": "状态 2 可启用恢复按钮；命令 3 被消费后，仍需 MRC 主状态和车辆状态确认恢复完成。"
+      }
+    ]
+  },
+  "lanes": [
+    { "id": "main", "label": "主状态" },
+    { "id": "recovery", "label": "恢复路径" }
+  ],
+  "states": [
+    {
+      "id": "normal",
+      "type": "start",
+      "label": "正常",
+      "sublabel": "effective MRC = 0",
+      "lane": "main",
+      "col": 0,
+      "step": "01",
+      "tag": "idle"
+    },
+    {
+      "id": "mrc0",
+      "type": "active",
+      "label": "MRC0",
+      "sublabel": "非制动状态",
+      "lane": "main",
+      "col": 1,
+      "step": "02",
+      "tag": "level 1"
+    },
+    {
+      "id": "mrcActive",
+      "type": "failure",
+      "label": "MRC1 / MRC2",
+      "sublabel": "effective >= 2",
+      "lane": "main",
+      "col": 2,
+      "step": "03",
+      "tag": "active"
+    },
+    {
+      "id": "braking",
+      "type": "active",
+      "label": "e2e 安全输出",
+      "sublabel": "扭矩零 + 减速度",
+      "lane": "main",
+      "col": 3,
+      "step": "04",
+      "tag": "override"
+    },
+    {
+      "id": "stopped",
+      "type": "success",
+      "label": "车辆停止",
+      "sublabel": "低速空挡 + EPB",
+      "lane": "main",
+      "col": 4,
+      "step": "05",
+      "tag": "outcome"
+    },
+    {
+      "id": "recoverRequest",
+      "type": "waiting",
+      "label": "下发恢复命令",
+      "sublabel": "self_recover = 3",
+      "lane": "recovery",
+      "col": 0,
+      "width": 116,
+      "yOffset": 78,
+      "tag": "request"
+    },
+    {
+      "id": "recoverAccepted",
+      "type": "active",
+      "label": "命令已消费",
+      "sublabel": "self_recover: 2 -> 0",
+      "lane": "recovery",
+      "col": 1,
+      "width": 116,
+      "yOffset": 78,
+      "tag": "accepted"
+    },
+    {
+      "id": "recovered",
+      "type": "success",
+      "label": "恢复确认",
+      "sublabel": "车辆状态回到 < 2",
+      "lane": "recovery",
+      "col": 2,
+      "width": 116,
+      "yOffset": 78,
+      "tag": "verified"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "normal-to-mrc0",
+      "from": "normal",
+      "to": "mrc0",
+      "variant": "default",
+      "route": "straight"
+    },
+    {
+      "id": "mrc0-to-active",
+      "from": "mrc0",
+      "to": "mrcActive",
+      "variant": "security",
+      "route": "straight"
+    },
+    {
+      "id": "active-to-braking",
+      "from": "mrcActive",
+      "to": "braking",
+      "variant": "security",
+      "route": "straight"
+    },
+    {
+      "id": "active-to-recovery",
+      "from": "mrcActive",
+      "to": "recoverRequest",
+      "label": "状态 2：可恢复",
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight",
+      "labelAt": [402, 202]
+    },
+    {
+      "id": "braking-to-stopped",
+      "from": "braking",
+      "to": "stopped",
+      "variant": "security",
+      "route": "straight"
+    },
+    {
+      "id": "recovery-to-accepted",
+      "from": "recoverRequest",
+      "to": "recoverAccepted",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "accepted-to-recovered",
+      "from": "recoverAccepted",
+      "to": "recovered",
+      "label": "仍需 MRC 清零",
+      "variant": "dashed",
+      "route": "straight",
+      "labelAt": [633, 428]
+    },
+    {
+      "id": "recovered-to-normal",
+      "from": "recovered",
+      "to": "normal",
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "right",
+      "via": [[710, 450], [120, 450], [120, 157]]
+    }
+  ]
+}

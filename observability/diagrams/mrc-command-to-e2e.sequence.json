@@ -1,0 +1,246 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "MRC 指令到 e2e 安全输出",
+    "output": "observability/diagrams/mrc-command-to-e2e.sequence.html",
+    "viewBox": [1680, 900],
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "views": [
+      {
+        "id": "command-ingress",
+        "label": "页面到车端入口",
+        "focus": ["page", "controller", "service", "room", "sender", "vehicle"],
+        "note": "页面请求先经过会话门禁和消息字段转换，再由房间异步转发到车辆。"
+      },
+      {
+        "id": "mrc-arbitration",
+        "label": "车端到 e2e 仲裁",
+        "focus": ["vehicle", "mrc_topic", "health", "e2e", "output"],
+        "note": "车端云端 MRC 与 health_arbitrator 结果在 e2e 中取最大值。"
+      },
+      {
+        "id": "observe-and-recover",
+        "label": "状态回传与恢复边界",
+        "focus": ["page", "vehicle", "mrc_topic", "health", "status", "e2e"],
+        "note": "self_recover_status=2 是页面启用信号；命令 3 已有消费者，但恢复完成仍需 MRC 主状态证据。"
+      }
+    ]
+  },
+  "participants": [
+    { "id": "page", "type": "frontend", "label": "远控页面" },
+    { "id": "controller", "type": "backend", "label": "HTTP Controller" },
+    { "id": "service", "type": "backend", "label": "Control Service" },
+    { "id": "room", "type": "messagebus", "label": "Room Forward" },
+    { "id": "sender", "type": "cloud", "label": "Device Sender" },
+    { "id": "vehicle", "type": "external", "label": "车端远控节点" },
+    { "id": "mrc_topic", "type": "messagebus", "label": "MRC topic" },
+    { "id": "health", "type": "messagebus", "label": "Health MRC" },
+    { "id": "e2e", "type": "backend", "label": "e2e 控制节点" },
+    { "id": "output", "type": "messagebus", "label": "逻辑控制输出" },
+    { "id": "status", "type": "messagebus", "label": "车辆状态回传" }
+  ],
+  "segments": [
+    { "from": 150, "to": 445, "label": "指令接入与云端转发" },
+    { "from": 460, "to": 615, "label": "车端 MRC 发布与 e2e 仲裁" },
+    { "from": 625, "to": 680, "label": "车辆状态回传" },
+    { "from": 695, "to": 825, "label": "独立 emergency-stop 分支" }
+  ],
+  "messages": [
+    {
+      "id": "page-command",
+      "from": "page",
+      "to": "controller",
+      "y": 170,
+      "label": "POST /parallel-driving/control/command",
+      "variant": "emphasis",
+      "note": "query: cockpitDeviceId, vehicleDeviceId, controlType=MRC; body: {mrc_status, self_recover_status?}"
+    },
+    {
+      "id": "controller-service",
+      "from": "controller",
+      "to": "service",
+      "y": 202,
+      "label": "绑定参数并创建 ControlMessage",
+      "variant": "default",
+      "note": "controlType 使用枚举转换；非法类型直接失败。"
+    },
+    {
+      "id": "service-room-gate",
+      "from": "service",
+      "to": "room",
+      "y": 234,
+      "label": "会话门禁：设备 + active session + room",
+      "variant": "security",
+      "note": "active session 最多等待约 12 x 200ms；失败时不会转发。"
+    },
+    {
+      "id": "service-room-prepare",
+      "from": "service",
+      "to": "room",
+      "y": 266,
+      "label": "注入 session、targetDeviceId、force=true",
+      "variant": "emphasis",
+      "note": "prepareInputs() 把 MRC 映射为 functionId=parallelDrivingControl、inputs.controlType=mrc。"
+    },
+    {
+      "id": "room-sender",
+      "from": "room",
+      "to": "sender",
+      "y": 298,
+      "label": "构造车辆 FunctionInvokeMessage",
+      "variant": "emphasis",
+      "note": "deviceId=vehicle；inputs.mrc_status=0..3；requestId/requestMessageId 与 messageId 关联。"
+    },
+    {
+      "id": "sender-vehicle",
+      "from": "sender",
+      "to": "vehicle",
+      "y": 330,
+      "label": "TCP/物模型消息：async + sendAndForget",
+      "variant": "emphasis",
+      "note": "平台确认发送成功，不等待车端执行完成。"
+    },
+    {
+      "id": "room-service-accepted",
+      "from": "room",
+      "to": "service",
+      "y": 362,
+      "label": "转发调用完成",
+      "variant": "return",
+      "note": "sendAndForget 完成只代表平台发送路径完成，不代表车辆已制动。"
+    },
+    {
+      "id": "service-controller-accepted",
+      "from": "service",
+      "to": "controller",
+      "y": 394,
+      "label": "记录日志、指标、Trace；Mono 完成",
+      "variant": "return"
+    },
+    {
+      "id": "controller-page-accepted",
+      "from": "controller",
+      "to": "page",
+      "y": 426,
+      "label": "HTTP 2xx：请求已受理/发送",
+      "variant": "return",
+      "note": "页面成功提示不能作为车辆执行结果。"
+    },
+    {
+      "id": "vehicle-mrc-topic",
+      "from": "vehicle",
+      "to": "mrc_topic",
+      "y": 476,
+      "label": "handle_mrc：状态缓存 / 恢复 one-shot",
+      "variant": "emphasis",
+      "note": "普通 MRC 写 mrc_cloud_；self_recover_status=3 经 exchange() 恰好发布一次。"
+    },
+    {
+      "id": "mrc-topic-e2e",
+      "from": "mrc_topic",
+      "to": "e2e",
+      "y": 508,
+      "label": "RecvMrcStatusPdInfo：mrc_status_pd_",
+      "variant": "emphasis"
+    },
+    {
+      "id": "mrc-topic-health-recover",
+      "from": "mrc_topic",
+      "to": "health",
+      "y": 540,
+      "label": "恢复命令 3：health 消费",
+      "variant": "default",
+      "note": "自恢复状态从 CAN_RECOVER(2) 转为 NOT_IN_MRC(0)；这证明命令被消费，不等同于 MRC 主状态已清零。"
+    },
+    {
+      "id": "health-e2e",
+      "from": "health",
+      "to": "e2e",
+      "y": 572,
+      "label": "RecvMrcStatusInfo：mrc_status_",
+      "variant": "security",
+      "note": "health_arbitrator 是另一条独立 MRC 来源。"
+    },
+    {
+      "id": "e2e-output",
+      "from": "e2e",
+      "to": "output",
+      "y": 604,
+      "label": "effective_mrc=max(pd, health)；A/R 进入 MRC 安全输出",
+      "variant": "security",
+      "note": "MRC1+：驱动轮扭矩置零、紧急减速度、方向保持；低速时空挡并拉 EPB。"
+    },
+    {
+      "id": "vehicle-status",
+      "from": "vehicle",
+      "to": "status",
+      "y": 642,
+      "label": "report chassis_status + mrc_event",
+      "variant": "dashed",
+      "note": "上报 mrc_status、self_recover_status、来源、drive_mode、speed、pd_msg_age_ms 等。"
+    },
+    {
+      "id": "status-page",
+      "from": "status",
+      "to": "page",
+      "y": 670,
+      "label": "状态流同步 mrc_status + self_recover_status",
+      "variant": "dashed",
+      "note": "页面直接以 self_recover_status=2 启用恢复按钮；恢复完成仍以车辆 MRC 状态为准。"
+    },
+    {
+      "id": "page-emergency",
+      "from": "page",
+      "to": "controller",
+      "y": 714,
+      "label": "POST /parallel-driving/control/emergency-stop",
+      "variant": "security",
+      "note": "这是独立接口，不等同于页面 MRC=2。"
+    },
+    {
+      "id": "controller-emergency",
+      "from": "controller",
+      "to": "service",
+      "y": 746,
+      "label": "创建 EMERGENCY_STOP 消息",
+      "variant": "security"
+    },
+    {
+      "id": "service-emergency",
+      "from": "service",
+      "to": "room",
+      "y": 778,
+      "label": "同样经过 active session / room 门禁",
+      "variant": "security"
+    },
+    {
+      "id": "room-emergency",
+      "from": "room",
+      "to": "vehicle",
+      "y": 810,
+      "label": "当前为 generic parallelDrivingControl 路由",
+      "variant": "security",
+      "note": "emergencyStop() 创建的消息默认 functionId 仍为 parallelDrivingControl，未自动映射到车端 emergencystop handler。"
+    },
+    {
+      "id": "emergency-boundary",
+      "from": "vehicle",
+      "to": "e2e",
+      "y": 810,
+      "label": "当前不能推出 emergency-stop 已执行",
+      "variant": "dashed",
+      "note": "generic parallelDrivingControl 且 controlType 为空时，车端可能返回 unsupported；需统一 emergencystop 与 MRC 协议后再验收。"
+    }
+  ],
+  "activations": [
+    { "participant": "controller", "from": 166, "to": 435, "type": "backend" },
+    { "participant": "service", "from": 198, "to": 405, "type": "backend" },
+    { "participant": "room", "from": 262, "to": 820, "type": "messagebus" },
+    { "participant": "sender", "from": 294, "to": 345, "type": "cloud" },
+    { "participant": "vehicle", "from": 326, "to": 820, "type": "external" },
+    { "participant": "e2e", "from": 504, "to": 620, "type": "backend" }
+  ]
+}

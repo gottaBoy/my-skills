@@ -1,6 +1,6 @@
 # 车云端可观测性文档导航
 
-更新时间：`2026-08-30`
+更新时间：`2026-09-07`
 
 本文档组按实际职责拆分，便于设计评审、开发跟踪、测试验收和 DSH 进度治理。
 完整的字段、代码挂点、历史问题和详细决策仍集中保留在
@@ -84,6 +84,12 @@
       <td>平台、可观测性、网络、数据平台、现场支持</td>
       <td><code>implemented/verified-poc</code>：DeepFlow 单节点 POC 已部署，内部受控流量已写入 ClickHouse 且 Grafana API 已验证；外部 Docker/ECS Agent、真实指令关联和生产 HA 待后续</td>
     </tr>
+    <tr>
+      <td><a href="12-mrc-command-to-e2e.md">12-mrc-command-to-e2e.md</a></td>
+      <td>MRC 从页面指令、ziot 后端、车端远控节点到 e2e 安全输出的调用链、状态机、协议边界和验收</td>
+      <td>前端、云端、车端远控、e2e、测试、可观测性</td>
+      <td><code>implemented/unverified</code>：代码链路已梳理，自恢复消费者已在专用车端分支实现；真实端到端执行、MRC 主状态恢复和 emergency-stop 协议待验证或修复</td>
+    </tr>
   </tbody>
 </table>
 
@@ -101,10 +107,12 @@
 10. ziot Prometheus 暴露、控制面阶段指标和云端采集验证写入 `10`。
 11. K8s 部署、Collector 路由、DeepFlow Agent 覆盖和 DataBuff 联调写入 `11`，
     可部署模板统一放在工作区根目录 `my-otel`。
-12. 运行逻辑、阈值或协议发生变化时，专题文档和完整设计基线必须在同一变更中更新。
-13. 专题文档不得把设计状态写成已部署；必须区分 `implemented`、`verified`、`approved`
+12. MRC 页面指令、ziot 转发、车端远控节点、e2e 仲裁和安全输出写入 `12`；
+    Sequence/Lifecycle 图源和 HTML 放在 `diagrams/`。
+13. 运行逻辑、阈值或协议发生变化时，专题文档和完整设计基线必须在同一变更中更新。
+14. 专题文档不得把设计状态写成已部署；必须区分 `implemented`、`verified`、`approved`
    和 `blocked`。
-14. 截至 `2026-08-30`，ziot Prometheus 端点和自定义指标注册已经由现场输出验证；
+15. 截至 `2026-08-30`，ziot Prometheus 端点和自定义指标注册已经由现场输出验证；
     业务操作后指标增长以及
     ZLMediaKit 与 zlmexporter 容器正在运行。DeepFlow 单节点 POC 已完成基础部署、
     健康、Agent 注册、平台同步和 Kubernetes 内部受控流量写入 ClickHouse 验证；
@@ -122,6 +130,9 @@
 - [ZLMediaKit eBPF/DeepFlow 与 DataBuff 方案](08-zlmediakit-ebpf-deepflow-databuff.md)
 - [RTSP 时间戳与 DeepFlow 关联方案](09-rtsp-timestamp-and-deepflow-correlation.md)
 - [ziot Prometheus 与控制面指标](10-ziot-prometheus-control-plane.md)
+- [MRC 指令到 e2e 安全输出](12-mrc-command-to-e2e.md)
+- [MRC 指令 Sequence 图](diagrams/mrc-command-to-e2e.sequence.html)
+- [MRC 状态 Lifecycle 图](diagrams/mrc-command-lifecycle.lifecycle.html)
 - [DSH Integration Pack](../dsh/README.md)
 - [现场验证步骤](../full-link-observability.md#92-第一阶段现场验证步骤)
 
