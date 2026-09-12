@@ -114,6 +114,12 @@
       <td>前端、云端设备状态、测试、现场支持、可观测性</td>
       <td><code>implemented/unverified</code>：仅展示状态稳定器和诊断已落地，控制与连接生命周期保持原逻辑，待目标环境回归</td>
     </tr>
+    <tr>
+      <td><a href="23-vehicle-data-platform-selection-20260912.md">23-vehicle-data-platform-selection-20260912.md</a></td>
+      <td>四家乘用车公开证据、TXT/SQLite/DuckDB/GreptimeDB 选型、MCAP/Parquet、OTel/eBPF 分阶段方案</td>
+      <td>架构、车端平台、数据平台、可观测性、测试</td>
+      <td><code>design/recorded</code>：方案已记录；代码级保密附录仅本地保存，不纳入 Git；未部署或实车验收</td>
+    </tr>
   </tbody>
 </table>
 
@@ -150,10 +156,16 @@
     健康、Agent 注册、平台同步和 Kubernetes 内部受控流量写入 ClickHouse 验证；
     Collector/DataBuff 持续闭环、真实指令关联以及 ECS/外部 Docker Agent 仍需按
     目标流量继续验收。
+20. 数据库横向选型和公开行业证据写入 `23`；代码级保密评估放入
+    `private/` 并保持 Git 忽略，不复制凭证、内部地址或原始敏感数据。
+21. L4 Harness 目标、需求映射、场景矩阵、证据包和量产门禁写入 `24`；
+    `design_only` 不得解释为已实现或已通过实车验证。
 
 ## 快速入口
 
 - [完整设计基线](../full-link-observability.md)
+- [完整选型：SQLite、DuckDB、GreptimeDB 与车云数据平台](23-vehicle-data-platform-selection-20260912.md)
+- [L4 数据与可观测性 Harness 方案](24-l4-data-observability-harness-plan-20260912.md)
 - [车端控制与视频现状](../full-link-observability.md#914-车端控制视频与-ebpf-实施设计)
 - [前端现状与本地埋点](../full-link-observability.md#912-前端-otelrum-与-deepflow-接入设计)
 - [当前工作项进度](../full-link-observability.md#913-当前工作项进度)

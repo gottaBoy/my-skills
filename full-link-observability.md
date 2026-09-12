@@ -7,6 +7,10 @@
 > GreptimeDB Edge、Apache Arrow、Parquet、OTel/OTAP 与 DataBuff/WAL 的车云数据平面设计见
 > [专题文档 06](observability/06-greptime-edge-and-arrow.md)。
 
+> 2026-09-12 数据库选型补充见[专题 23](observability/23-vehicle-data-platform-selection-20260912.md)：
+> 区分 SQLite 事务状态、DuckDB 离线分析与 GreptimeDB 云端/Edge 候选，
+> 并记录分阶段方案与升级门槛；不变更既有运行状态或安全边界。
+
 ## 1. 目标与边界
 
 本方案用于建立从车端采集、车云网络、云端服务到用户端的统一可观测链路，优先解决两类问题：

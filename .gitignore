@@ -1,3 +1,6 @@
 # autodrive-skills .gitignore
 modernize/
 setup_skills.py
+
+# Local confidential project assessments. Do not commit or force-add.
+/observability/private/
