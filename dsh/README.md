@@ -38,6 +38,9 @@ checks; they do not claim that a production DSH service is deployed.
 | `schemas/action-task.schema.json` | Approved task handoff to executor |
 | `schemas/session-event.schema.json` | Append-only session and telemetry event |
 | `fixtures/valid/` | Canonical requests, evidence, task and session examples |
+| `fixtures/replay/remote-session-scenarios.json` | Read-only remote-session replay timelines |
+| `replay_remote_session.py` | Deterministic cloud-session exit/MRC evidence harness |
+| `verify_exit_timeline.py` | Read-only cloud/e2e log timeline extractor |
 | `validate_contract.py` | Dependency-free schema and cross-file validation |
 
 ## Runtime Boundary
@@ -70,6 +73,31 @@ original control, media, alerting and manual operations paths must continue.
 
 The runtime status is `unverified` until each step has an evidence reference
 from the target DSH/Cordis deployment and its connected data sources.
+
+## Remote Session Replay
+
+The replay harness validates the cloud-side release boundary without ROS,
+vehicle TCP, MQTT, CAN, or production writes:
+
+```bash
+python3 .github/dsh/replay_remote_session.py --all
+python3 .github/dsh/replay_remote_session.py --scenario normal-onrelease --json
+python3 .github/dsh/verify_exit_timeline.py \
+  --cloud-driving /path/to/ztd_cloud_driving.log \
+  --e2e /path/to/e2e_control.log \
+  --since 1788954800 --until 1788954860
+```
+
+The safe scenarios verify that `onRelease` and `bt_others=1` clear the cloud
+session cache, publish at most one R-mode brake frame, and do not create a
+post-release joystick MRC1. The `real-joystick-loss` scenario intentionally
+keeps the existing watchdog behavior and must still reach MRC1.
+
+The harness also exposes, rather than masks, the two current cross-session
+risks: a delayed old-session joystick can re-arm timeout detection, and a
+late old-session release can clear a newer session. Use
+`--strict-risks` when those known risks should fail a gate. No replay result
+changes the e2e state machine or watchdog judgement policy.
 
 ## Capability Rules
 

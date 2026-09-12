@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Remote Session Exit Architecture",
+    "quality_profile": "showcase",
+    "viewBox": [1100, 520],
+    "locale": "en"
+  },
+  "components": [
+    { "id": "page", "type": "frontend", "label": "Remote Driving Page", "sublabel": "onRelease", "pos": [36, 60], "size": [150, 60] },
+    { "id": "joystick", "type": "frontend", "label": "Joystick", "sublabel": "bt_others=1", "pos": [36, 360], "size": [150, 60] },
+    { "id": "iotgw", "type": "cloud", "label": "IoT Gateway", "pos": [240, 210], "size": [130, 60] },
+    { "id": "vehicle", "type": "backend", "label": "cloud_driving_vehicle", "sublabel": "ROS2 node", "pos": [440, 60], "size": [160, 60] },
+    { "id": "joysm", "type": "backend", "label": "JoyMrcSM", "sublabel": "NORMAL DETECTING MRC1 SUPPRESSED", "pos": [440, 360], "size": [160, 60] },
+    { "id": "e2e", "type": "backend", "label": "e2e_control_v2", "sublabel": "R-mode state machine", "pos": [680, 210], "size": [150, 60] },
+    { "id": "chassis", "type": "messagebus", "label": "Chassis CAN", "sublabel": "Brake Gear Lights", "pos": [900, 210], "size": [150, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Page Session Layer", "wraps": ["page", "iotgw", "vehicle"] },
+    { "kind": "region", "label": "Joystick Source Layer", "wraps": ["joystick", "joysm"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "page", "to": "iotgw", "label": "onRelease HTTP", "variant": "emphasis" },
+    { "id": "c2", "from": "joystick", "to": "iotgw", "label": "joystickdata", "variant": "emphasis" },
+    { "id": "c3", "from": "iotgw", "to": "vehicle", "label": "dispatch RPC" },
+    { "id": "c4", "from": "iotgw", "to": "joysm", "label": "dispatch RPC" },
+    { "id": "c5", "from": "vehicle", "to": "e2e", "label": "DRIVE_R brake exit", "variant": "emphasis" },
+    { "id": "c6", "from": "joysm", "to": "e2e", "label": "brake frame", "variant": "dashed" },
+    { "id": "c7", "from": "e2e", "to": "chassis", "label": "PDrivingControl", "labelDy": -24 }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Two distinct exit paths", "items": ["Page-level onRelease: full session teardown, publishes DRIVE_R + brake to e2e, stays in R mode", "Joystick bt_others=1: source temporarily stops, session stays alive, watchdog suppressed"] },
+    { "dot": "amber", "title": "What stays unchanged", "items": ["e2e state machine: DRIVE_R + PD_EXIT keeps R mode with brake + hazard", "Joystick watchdog thresholds and detection logic untouched"] }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "fixture_version": "1",
+  "policy": {
+    "e2e_state_machine": "unchanged",
+    "watchdog_judgement": "unchanged",
+    "production_writes": false
+  },
+  "scenarios": [
+    {
+      "name": "normal-onrelease",
+      "classification": "safe",
+      "events": [
+        {"at_ms": 0, "type": "takeover", "session_id": "s1"},
+        {"at_ms": 100, "type": "drive_mode", "mode": 2},
+        {"at_ms": 200, "type": "joystick", "session_id": "s1", "bt_others": 0},
+        {"at_ms": 300, "type": "tick"},
+        {"at_ms": 1000, "type": "release", "session_id": "s1"},
+        {"at_ms": 1100, "type": "tick"},
+        {"at_ms": 1400, "type": "tick"}
+      ]
+    },
+    {
+      "name": "bt-others-exit",
+      "classification": "safe",
+      "events": [
+        {"at_ms": 0, "type": "takeover", "session_id": "s1"},
+        {"at_ms": 100, "type": "drive_mode", "mode": 2},
+        {"at_ms": 200, "type": "joystick", "session_id": "s1", "bt_others": 0},
+        {
+          "at_ms": 1000,
+          "type": "joystick",
+          "session_id": "s1",
+          "joystickdata": {"bt_others": 1}
+        },
+        {"at_ms": 1100, "type": "tick"},
+        {"at_ms": 1400, "type": "tick"},
+        {"at_ms": 1500, "type": "joystick", "session_id": "s1", "bt_others": 0},
+        {"at_ms": 1600, "type": "tick"}
+      ]
+    },
+    {
+      "name": "release-vs-timeout",
+      "classification": "safe",
+      "events": [
+        {"at_ms": 0, "type": "takeover", "session_id": "s1"},
+        {"at_ms": 100, "type": "drive_mode", "mode": 2},
+        {"at_ms": 200, "type": "joystick", "session_id": "s1", "bt_others": 0},
+        {"at_ms": 600, "type": "tick"},
+        {"at_ms": 700, "type": "tick"},
+        {"at_ms": 800, "type": "tick"},
+        {"at_ms": 900, "type": "tick"},
+        {"at_ms": 1000, "type": "tick"},
+        {"at_ms": 1100, "type": "tick"},
+        {"at_ms": 1150, "type": "release", "session_id": "s1"},
+        {"at_ms": 1300, "type": "tick"}
+      ]
+    },
+    {
+      "name": "repeated-release",
+      "classification": "safe",
+      "events": [
+        {"at_ms": 0, "type": "takeover", "session_id": "s1"},
+        {"at_ms": 100, "type": "drive_mode", "mode": 2},
+        {"at_ms": 200, "type": "joystick", "session_id": "s1", "bt_others": 0},
+        {"at_ms": 1000, "type": "release", "session_id": "s1"},
+        {"at_ms": 1010, "type": "release", "session_id": "s1"},
+        {"at_ms": 1020, "type": "release", "session_id": "s1"}
+      ]
+    },
+    {
+      "name": "real-joystick-loss",
+      "classification": "safe",
+      "events": [
+        {"at_ms": 0, "type": "takeover", "session_id": "s1"},
+        {"at_ms": 100, "type": "drive_mode", "mode": 2},
+        {"at_ms": 200, "type": "joystick", "session_id": "s1", "bt_others": 0},
+        {"at_ms": 600, "type": "tick"},
+        {"at_ms": 700, "type": "tick"},
+        {"at_ms": 800, "type": "tick"},
+        {"at_ms": 900, "type": "tick"},
+        {"at_ms": 1000, "type": "tick"},
+        {"at_ms": 1100, "type": "tick"}
+      ]
+    },
+    {
+      "name": "delayed-old-session-message",
+      "classification": "known-risk",
+      "events": [
+        {"at_ms": 0, "type": "takeover", "session_id": "s1"},
+        {"at_ms": 100, "type": "drive_mode", "mode": 2},
+        {"at_ms": 200, "type": "joystick", "session_id": "s1", "bt_others": 0},
+        {"at_ms": 1000, "type": "release", "session_id": "s1"},
+        {"at_ms": 1100, "type": "takeover", "session_id": "s2"},
+        {"at_ms": 1200, "type": "drive_mode", "mode": 2},
+        {"at_ms": 1300, "type": "joystick", "session_id": "s1", "bt_others": 0},
+        {"at_ms": 1700, "type": "tick"},
+        {"at_ms": 1800, "type": "tick"},
+        {"at_ms": 1900, "type": "tick"},
+        {"at_ms": 2000, "type": "tick"},
+        {"at_ms": 2100, "type": "tick"},
+        {"at_ms": 2200, "type": "tick"}
+      ]
+    },
+    {
+      "name": "late-release-clears-new-session",
+      "classification": "known-risk",
+      "events": [
+        {"at_ms": 0, "type": "takeover", "session_id": "s1"},
+        {"at_ms": 100, "type": "drive_mode", "mode": 2},
+        {"at_ms": 200, "type": "joystick", "session_id": "s1", "bt_others": 0},
+        {"at_ms": 1000, "type": "takeover", "session_id": "s2"},
+        {"at_ms": 1100, "type": "drive_mode", "mode": 2},
+        {"at_ms": 1200, "type": "joystick", "session_id": "s2", "bt_others": 0},
+        {"at_ms": 1300, "type": "release", "session_id": "s1"}
+      ]
+    }
+  ]
+}

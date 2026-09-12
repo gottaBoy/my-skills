@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parent
 SCHEMA_DIR = ROOT / "schemas"
 FIXTURE_DIR = ROOT / "fixtures" / "valid"
 INVALID_FIXTURE_DIR = ROOT / "fixtures" / "invalid"
+REPLAY_FIXTURE = ROOT / "fixtures" / "replay" / "remote-session-scenarios.json"
 
 
 class ValidationError(ValueError):
@@ -254,10 +255,40 @@ def main() -> int:
             continue
         raise SystemExit(f"{filename}: invalid fixture unexpectedly passed validation")
 
+    replay = load_json(REPLAY_FIXTURE)
+    if replay.get("fixture_version") != "1":
+        raise SystemExit("remote-session replay fixture has an unsupported version")
+    if replay.get("policy", {}).get("production_writes") is not False:
+        raise SystemExit("remote-session replay must disable production writes")
+    replay_scenarios = replay.get("scenarios")
+    if not isinstance(replay_scenarios, list) or not replay_scenarios:
+        raise SystemExit("remote-session replay fixture has no scenarios")
+    replay_names = [scenario.get("name") for scenario in replay_scenarios]
+    if any(not isinstance(name, str) or not name for name in replay_names):
+        raise SystemExit("remote-session replay scenario names must be non-empty strings")
+    if len(replay_names) != len(set(replay_names)):
+        raise SystemExit("remote-session replay contains duplicate scenario names")
+    supported_replay_events = {"takeover", "drive_mode", "release", "joystick", "tick"}
+    for scenario in replay_scenarios:
+        if scenario.get("classification") not in {"safe", "known-risk"}:
+            raise SystemExit(f"{scenario.get('name')}: invalid replay classification")
+        events = scenario.get("events")
+        if not isinstance(events, list) or not events:
+            raise SystemExit(f"{scenario.get('name')}: replay scenario has no events")
+        previous_at_ms = -1
+        for event in events:
+            if event.get("type") not in supported_replay_events:
+                raise SystemExit(f"{scenario.get('name')}: unsupported replay event")
+            at_ms = event.get("at_ms")
+            if not isinstance(at_ms, int) or at_ms < previous_at_ms:
+                raise SystemExit(f"{scenario.get('name')}: replay timestamps are not monotonic")
+            previous_at_ms = at_ms
+
     print(
         f"validated DSH contract: {len(schema_names)} schemas, "
         f"{len(required_capabilities)} capability groups, {len(registry_names)} read-only tools, "
-        f"{len(fixture_schemas)} valid fixtures, {len(invalid_fixture_schemas)} rejected fixtures"
+        f"{len(fixture_schemas)} valid fixtures, {len(invalid_fixture_schemas)} rejected fixtures, "
+        f"{len(replay_scenarios)} replay scenarios"
     )
     return 0
 

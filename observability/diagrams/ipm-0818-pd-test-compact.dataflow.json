@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "0818 PD Test 分支 IPM 数据流（2026-09-11 21:52）",
+    "locale": "zh-CN",
+    "output": "ipm-0818-pd-test.dataflow.html",
+    "viewBox": [1080, 520],
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "ipm-path",
+        "label": "IPM 低帧率路径",
+        "focus": ["cameras", "compressed", "merge", "ipm_topic", "ipm_rtsp"],
+        "note": "feature/llm-on-vehicle-0818-pd-test：三路 20 FPS 相机先降为约 10 Hz JPEG，经同步和串行融合后只输出约 5.22 FPS。"
+      },
+      {
+        "id": "control-path",
+        "label": "普通相机对照路径",
+        "focus": ["cameras", "raw_topics", "camera_rtsp"],
+        "note": "普通 rtsp_raw_image 保持约 20 FPS；/ipm stale_drop=0，RTSP 不是本批主瓶颈。"
+      }
+    ]
+  },
+  "stages": [
+    { "label": "相机采集" },
+    { "label": "ROS 输入" },
+    { "label": "camera_merge" },
+    { "label": "IPM 输出" },
+    { "label": "RTSP 消费" }
+  ],
+  "nodes": [
+    {
+      "id": "cameras",
+      "type": "external",
+      "label": "IPM 三相机",
+      "sublabel": "cam 11 / 12 / 13",
+      "stage": 0,
+      "row": 0,
+      "tag": "各 20 FPS"
+    },
+    {
+      "id": "compressed",
+      "type": "messagebus",
+      "label": "compressed JPEG",
+      "sublabel": "quality=80",
+      "stage": 1,
+      "row": 0,
+      "width": 130,
+      "tag": "skip=1，约 10 Hz"
+    },
+    {
+      "id": "raw_topics",
+      "type": "messagebus",
+      "label": "rtsp_raw_image",
+      "sublabel": "BGR 原图",
+      "stage": 1,
+      "row": 2,
+      "width": 128,
+      "tag": "约 20 Hz"
+    },
+    {
+      "id": "merge",
+      "type": "backend",
+      "label": "同步 + IPM 融合",
+      "sublabel": "3x decode/remap/blend",
+      "stage": 2,
+      "row": 0,
+      "width": 168,
+      "tag": "互斥串行 callback"
+    },
+    {
+      "id": "ipm_topic",
+      "type": "messagebus",
+      "label": "IPM ROS topic",
+      "sublabel": "480x480 BGR",
+      "stage": 3,
+      "row": 0,
+      "width": 128,
+      "tag": "平均 5.22 FPS"
+    },
+    {
+      "id": "ipm_rtsp",
+      "type": "cloud",
+      "label": "ztd_rtsp /ipm",
+      "sublabel": "nvh264enc",
+      "stage": 4,
+      "row": 0,
+      "width": 128,
+      "tag": "1982/1982，stale=0"
+    },
+    {
+      "id": "camera_rtsp",
+      "type": "cloud",
+      "label": "普通相机 RTSP",
+      "sublabel": "cam_f_12 对照",
+      "stage": 4,
+      "row": 2,
+      "width": 130,
+      "tag": "约 20.03 FPS"
+    }
+  ],
+  "flows": [
+    {
+      "from": "cameras",
+      "to": "compressed",
+      "label": "每两帧编码一次",
+      "classification": "约 10 Hz",
+      "variant": "emphasis",
+      "route": "straight",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [203, 105]
+    },
+    {
+      "from": "compressed",
+      "to": "merge",
+      "label": "三路独立时间戳",
+      "classification": "epsilon=50ms",
+      "variant": "emphasis",
+      "route": "auto",
+      "labelAt": [413, 220]
+    },
+    {
+      "from": "merge",
+      "to": "ipm_topic",
+      "label": "同步匹配并串行计算",
+      "classification": "实测 5.22 FPS",
+      "variant": "security",
+      "route": "auto",
+      "labelAt": [648, 220]
+    },
+    {
+      "from": "ipm_topic",
+      "to": "ipm_rtsp",
+      "label": "收到即成功推送",
+      "classification": "push 0~1ms，stale=0",
+      "variant": "default",
+      "route": "auto",
+      "labelAt": [853, 220]
+    },
+    {
+      "from": "cameras",
+      "to": "raw_topics",
+      "label": "每帧发布",
+      "classification": "约 20 Hz",
+      "variant": "default",
+      "route": "auto"
+    },
+    {
+      "from": "raw_topics",
+      "to": "camera_rtsp",
+      "label": "普通相机对照链路",
+      "classification": "稳定 20 FPS",
+      "variant": "default",
+      "route": "auto"
+    }
+  ]
+}

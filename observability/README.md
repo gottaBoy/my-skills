@@ -1,6 +1,6 @@
 # 车云端可观测性文档导航
 
-更新时间：`2026-09-07`
+更新时间：`2026-09-11`
 
 本文档组按实际职责拆分，便于设计评审、开发跟踪、测试验收和 DSH 进度治理。
 完整的字段、代码挂点、历史问题和详细决策仍集中保留在
@@ -90,6 +90,18 @@
       <td>前端、云端、车端远控、e2e、测试、可观测性</td>
       <td><code>implemented/unverified</code>：代码链路已梳理，自恢复消费者已在专用车端分支实现；真实端到端执行、MRC 主状态恢复和 emergency-stop 协议待验证或修复</td>
     </tr>
+    <tr>
+      <td><a href="19-ipm-fps-fluctuation-analysis-20260911.md">19-ipm-fps-fluctuation-analysis-20260911.md</a></td>
+      <td>上一批 IPM FPS 波动、历史帧积压、RTSP stale_drop 放大路径和修改边界</td>
+      <td>车端图像、RTSP、GStreamer、测试、现场支持</td>
+      <td><code>analysis/unverified</code>：适用于 0729 分支对应日志，不与 0818 本批结论混用</td>
+    </tr>
+    <tr>
+      <td><a href="20-ipm-fps-fluctuation-analysis-20260911-0818-pd-test.md">20-ipm-fps-fluctuation-analysis-20260911-0818-pd-test.md</a></td>
+      <td>0818 PD Test 分支 IPM 低 FPS、三路 compressed 同步链路、RTSP 边界和 camera_merge 修改范围</td>
+      <td>车端图像、camera_merge、RTSP、测试、现场支持</td>
+      <td><code>analysis/unverified</code>：本批日志显示 IPM 约 5.22 FPS，优先只改 camera_merge；待实现后的实车回归</td>
+    </tr>
   </tbody>
 </table>
 
@@ -109,10 +121,14 @@
     可部署模板统一放在工作区根目录 `my-otel`。
 12. MRC 页面指令、ziot 转发、车端远控节点、e2e 仲裁和安全输出写入 `12`；
     Sequence/Lifecycle 图源和 HTML 放在 `diagrams/`。
-13. 运行逻辑、阈值或协议发生变化时，专题文档和完整设计基线必须在同一变更中更新。
-14. 专题文档不得把设计状态写成已部署；必须区分 `implemented`、`verified`、`approved`
+13. 上一批 IPM 图像实时性、camera_merge 积压和 RTSP stale frame 分析写入 `19`；
+    该文档只适用于对应的 0729 分支日志。
+14. 0818 PD Test 分支的 IPM 低 FPS、三路 compressed 同步、10 FPS/20 FPS 目标
+    边界和“优先只改 camera_merge”的结论写入 `20`。
+15. 运行逻辑、阈值或协议发生变化时，专题文档和完整设计基线必须在同一变更中更新。
+16. 专题文档不得把设计状态写成已部署；必须区分 `implemented`、`verified`、`approved`
    和 `blocked`。
-15. 截至 `2026-08-30`，ziot Prometheus 端点和自定义指标注册已经由现场输出验证；
+17. 截至 `2026-08-30`，ziot Prometheus 端点和自定义指标注册已经由现场输出验证；
     业务操作后指标增长以及
     ZLMediaKit 与 zlmexporter 容器正在运行。DeepFlow 单节点 POC 已完成基础部署、
     健康、Agent 注册、平台同步和 Kubernetes 内部受控流量写入 ClickHouse 验证；
@@ -131,6 +147,8 @@
 - [RTSP 时间戳与 DeepFlow 关联方案](09-rtsp-timestamp-and-deepflow-correlation.md)
 - [ziot Prometheus 与控制面指标](10-ziot-prometheus-control-plane.md)
 - [MRC 指令到 e2e 安全输出](12-mrc-command-to-e2e.md)
+- [IPM FPS 波动与车端实时性分析](19-ipm-fps-fluctuation-analysis-20260911.md)
+- [0818 PD Test 分支 IPM 分析](20-ipm-fps-fluctuation-analysis-20260911-0818-pd-test.md)
 - [MRC 指令 Sequence 图](diagrams/mrc-command-to-e2e.sequence.html)
 - [MRC 状态 Lifecycle 图](diagrams/mrc-command-lifecycle.lifecycle.html)
 - [DSH Integration Pack](../dsh/README.md)
