@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "远控页面车辆在线状态稳定器",
+    "locale": "zh-CN",
+    "output": "vehicle-online-state-stabilizer.architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [1320, 780],
+    "views": [
+      {
+        "id": "probe-path",
+        "label": "周期探测链路",
+        "focus": ["device-check", "vehicle-query", "poller", "raw-probe"],
+        "note": "后端主动探测结果只作为原始证据，不再直接驱动用户可见状态。"
+      },
+      {
+        "id": "confirmation-path",
+        "label": "前端确认链路",
+        "focus": ["raw-probe", "state-stabilizer", "confirmed-state"],
+        "note": "在线立即恢复；离线需连续三次确认，并参考状态 WebSocket 新鲜度。"
+      },
+      {
+        "id": "realtime-link",
+        "label": "实时证据辅助",
+        "focus": ["status-stream", "state-stabilizer", "confirmed-state"],
+        "note": "vehicle-status 只辅助稳定展示状态，WebSocket 生命周期仍按原始状态判定。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "device-check",
+      "type": "backend",
+      "label": "DeviceOperator.checkState",
+      "sublabel": "EventBus / RPC / session 探测",
+      "pos": [55, 285],
+      "size": [190, 76]
+    },
+    {
+      "id": "vehicle-query",
+      "type": "backend",
+      "label": "车辆查询接口",
+      "sublabel": "POST /parallel-driving/vehicles/_query",
+      "pos": [320, 285],
+      "size": [205, 76]
+    },
+    {
+      "id": "poller",
+      "type": "frontend",
+      "label": "5 秒详情轮询",
+      "sublabel": "loadVehicle(true)",
+      "pos": [595, 135],
+      "size": [170, 72]
+    },
+    {
+      "id": "raw-probe",
+      "type": "frontend",
+      "label": "原始探测状态",
+      "sublabel": "probeState: online/offline/notActive",
+      "pos": [595, 285],
+      "size": [205, 76]
+    },
+    {
+      "id": "status-stream",
+      "type": "messagebus",
+      "label": "车辆状态 WebSocket",
+      "sublabel": "vehicle-status 实时消息",
+      "pos": [595, 455],
+      "size": [205, 76]
+    },
+    {
+      "id": "state-stabilizer",
+      "type": "frontend",
+      "label": "在线状态稳定器",
+      "sublabel": "3 次确认 + 15 秒实时证据",
+      "tag": "本次实现",
+      "pos": [865, 285],
+      "size": [205, 84]
+    },
+    {
+      "id": "confirmed-state",
+      "type": "frontend",
+      "label": "顶部/详情展示状态",
+      "sublabel": "在线立即恢复，离线延迟确认",
+      "pos": [1120, 185],
+      "size": [170, 76]
+    },
+    {
+      "id": "ws-lifecycle",
+      "type": "frontend",
+      "label": "状态 WS 生命周期",
+      "sublabel": "沿用原始状态判定",
+      "pos": [1120, 405],
+      "size": [170, 76]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "云端设备状态查询",
+      "wraps": ["device-check", "vehicle-query"],
+      "pad": 24
+    },
+    {
+      "kind": "region",
+      "label": "浏览器远控页面",
+      "wraps": ["poller", "raw-probe", "status-stream", "state-stabilizer", "confirmed-state", "ws-lifecycle"],
+      "pad": 26
+    }
+  ],
+  "connections": [
+    {
+      "id": "check-to-query",
+      "from": "device-check",
+      "to": "vehicle-query",
+      "label": "探测结果",
+      "variant": "default"
+    },
+    {
+      "id": "poll-to-query",
+      "from": "poller",
+      "to": "vehicle-query",
+      "label": "每 5 秒查询",
+      "variant": "dashed"
+    },
+    {
+      "id": "query-to-probe",
+      "from": "vehicle-query",
+      "to": "raw-probe",
+      "label": "raw state",
+      "variant": "default",
+      "labelAt": [600, 266]
+    },
+    {
+      "id": "probe-to-stabilizer",
+      "from": "raw-probe",
+      "to": "state-stabilizer",
+      "label": "候选在线/离线",
+      "variant": "emphasis",
+      "labelAt": [833, 281]
+    },
+    {
+      "id": "stream-to-stabilizer",
+      "from": "status-stream",
+      "to": "state-stabilizer",
+      "label": "15 秒内新鲜消息",
+      "variant": "emphasis"
+    },
+    {
+      "id": "stabilizer-to-display",
+      "from": "state-stabilizer",
+      "to": "confirmed-state",
+      "label": "confirmedState",
+      "variant": "emphasis",
+      "labelAt": [1095, 275]
+    },
+    {
+      "id": "ws-to-stream",
+      "from": "ws-lifecycle",
+      "to": "status-stream",
+      "label": "订阅 / 重连",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "展示原则",
+      "items": [
+        "online 探测立即恢复为在线",
+        "单次 offline/notActive 不改变顶部状态"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "确认原则",
+      "items": [
+        "连续 3 次不可用探测才具备离线条件",
+        "15 秒内有 vehicle-status 时继续保留展示在线"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "本次边界",
+      "items": [
+        "不修改后端 checkState 和设备状态语义",
+        "控制、视频和 WS 生命周期继续使用 raw state",
+        "不修改 e2e、watchdog 或远控会话协议"
+      ]
+    }
+  ]
+}

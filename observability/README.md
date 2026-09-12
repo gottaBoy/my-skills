@@ -108,6 +108,12 @@
       <td>车端图像、camera_merge、相机进程管理、RTSP、测试、现场支持</td>
       <td><code>analysis/unverified</code>：本批正常约 10 Hz，主要波动由 cam_f_12 被中断造成；待确认信号来源和自动恢复策略</td>
     </tr>
+    <tr>
+      <td><a href="22-vehicle-online-state-stabilizer-20260912.md">22-vehicle-online-state-stabilizer-20260912.md</a></td>
+      <td>远控页面在线/离线周期抖动、仅展示状态稳定、原始业务状态保持不变</td>
+      <td>前端、云端设备状态、测试、现场支持、可观测性</td>
+      <td><code>implemented/unverified</code>：仅展示状态稳定器和诊断已落地，控制与连接生命周期保持原逻辑，待目标环境回归</td>
+    </tr>
   </tbody>
 </table>
 
@@ -133,10 +139,12 @@
     边界和“优先只改 camera_merge”的结论写入 `20`。
 15. feature/pd_test_0818 分支的 20 Hz 原图输入、10 Hz IPM 正常表现、
     cam_f_12 断流传播和进程恢复建议写入 `21`。
-16. 运行逻辑、阈值或协议发生变化时，专题文档和完整设计基线必须在同一变更中更新。
-17. 专题文档不得把设计状态写成已部署；必须区分 `implemented`、`verified`、`approved`
+16. 远控页面车辆在线状态、周期探测、确认窗口、状态 WebSocket 实时证据和前端
+    防抖验收写入 `22`。
+17. 运行逻辑、阈值或协议发生变化时，专题文档和完整设计基线必须在同一变更中更新。
+18. 专题文档不得把设计状态写成已部署；必须区分 `implemented`、`verified`、`approved`
     和 `blocked`。
-18. 截至 `2026-08-30`，ziot Prometheus 端点和自定义指标注册已经由现场输出验证；
+19. 截至 `2026-08-30`，ziot Prometheus 端点和自定义指标注册已经由现场输出验证；
     业务操作后指标增长以及
     ZLMediaKit 与 zlmexporter 容器正在运行。DeepFlow 单节点 POC 已完成基础部署、
     健康、Agent 注册、平台同步和 Kubernetes 内部受控流量写入 ClickHouse 验证；
@@ -158,6 +166,8 @@
 - [IPM FPS 波动与车端实时性分析](19-ipm-fps-fluctuation-analysis-20260911.md)
 - [0818 PD Test 分支 IPM 分析](20-ipm-fps-fluctuation-analysis-20260911-0818-pd-test.md)
 - [feature/pd_test_0818 IPM 断流分析](21-ipm-fps-fluctuation-analysis-20260912-pd-test.md)
+- [远控页面车辆在线状态稳定器](22-vehicle-online-state-stabilizer-20260912.md)
+- [车辆在线状态稳定器架构图](diagrams/vehicle-online-state-stabilizer.architecture.html)
 - [IPM 数据流与断流传播图](diagrams/ipm-pd-test-20260912.dataflow.html)
 - [MRC 指令 Sequence 图](diagrams/mrc-command-to-e2e.sequence.html)
 - [MRC 状态 Lifecycle 图](diagrams/mrc-command-lifecycle.lifecycle.html)
