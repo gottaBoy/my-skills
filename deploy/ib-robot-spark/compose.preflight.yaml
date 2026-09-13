@@ -1,0 +1,113 @@
+name: ibrobot-spark-preflight
+
+x-probe: &probe
+  platform: linux/arm64
+  init: true
+  user: "65532:65532"
+  working_dir: /tmp
+  read_only: true
+  network_mode: none
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  pids_limit: 128
+  cpus: 2
+  mem_limit: 4g
+  memswap_limit: 4g
+  shm_size: 256m
+  tmpfs:
+    - /tmp:rw,nosuid,size=256m,mode=1777
+  restart: "no"
+  logging:
+    driver: local
+    options:
+      max-size: "5m"
+      max-file: "2"
+
+services:
+  ros-probe:
+    <<: *probe
+    profiles: [ros-check]
+    # Resolve and record an approved digest before treating this as a release input.
+    image: ${ROS_PROBE_IMAGE:-ros:humble-ros-core-jammy}
+    environment:
+      HOME: /tmp
+      ROS_DOMAIN_ID: "171"
+      ROS_LOCALHOST_ONLY: "1"
+      ROS_LOG_DIR: /tmp/ros-logs
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -eu
+        source /opt/ros/humble/setup.bash
+        exec python3 - <<'PY'
+        import json
+        import os
+        import platform
+        import sys
+        import rclpy
+
+        assert platform.machine() == "aarch64", platform.machine()
+        assert sys.version_info[:2] == (3, 10), sys.version
+        assert os.environ["ROS_DISTRO"] == "humble"
+        rclpy.init()
+        node = rclpy.create_node("spark_ros_probe")
+        try:
+            print(json.dumps({
+                "status": "passed",
+                "scope": "ros-platform-only",
+                "architecture": platform.machine(),
+                "python": platform.python_version(),
+                "ros_distro": os.environ["ROS_DISTRO"],
+                "node": node.get_name(),
+            }), flush=True)
+        finally:
+            node.destroy_node()
+            rclpy.shutdown()
+        PY
+
+  gpu-probe:
+    <<: *probe
+    profiles: [gpu-check]
+    # Historical probe baseline, not an IB_Robot application image or a latest tag.
+    image: nvcr.io/nvidia/pytorch:25.09-py3@sha256:89172d8ef9c4641aacdcddf02c085bf7a736501b443ce2c4e0a660754f67106b
+    devices:
+      - "nvidia.com/gpu=all"
+    environment:
+      HOME: /tmp
+      NVIDIA_VISIBLE_DEVICES: void
+      CUDA_CACHE_PATH: /tmp/cuda-cache
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    entrypoint: ["python3", "-c"]
+    command:
+      - |
+        import json
+        import platform
+        import torch
+
+        assert platform.machine() == "aarch64", platform.machine()
+        assert torch.cuda.is_available(), "CUDA is unavailable; inspect existing CDI/driver setup"
+        capability = torch.cuda.get_device_capability(0)
+        assert capability == (12, 1), f"Expected GB10 compute capability 12.1, got {capability}"
+        device_name = torch.cuda.get_device_name(0)
+        assert "GB10" in device_name, device_name
+        a = torch.ones((128, 128), device="cuda", dtype=torch.float32)
+        b = a @ a
+        torch.cuda.synchronize()
+        assert torch.isfinite(b).all().item(), "Non-finite CUDA output"
+        assert torch.allclose(b, torch.full_like(b, 128.0)), "Incorrect CUDA output"
+        print(json.dumps({
+            "status": "passed",
+            "scope": "gpu-platform-only",
+            "architecture": platform.machine(),
+            "python": platform.python_version(),
+            "torch": torch.__version__,
+            "cuda": torch.version.cuda,
+            "gpu": device_name,
+            "compute_capability": list(capability),
+            "kernel": "float32-matmul",
+        }), flush=True)
