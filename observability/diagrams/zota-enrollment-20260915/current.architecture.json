@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ZOTA Enrollment · 当前实现与审查边界",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [1360, 720]
+  },
+  "components": [
+    { "id": "installer", "type": "external", "label": "zeol 安装", "sublabel": "仍要求逐车 target token", "pos": [40, 70], "size": [220, 76] },
+    { "id": "agent", "type": "backend", "label": "aura-ota-agent", "sublabel": "EnsureCredentials", "pos": [40, 310], "size": [220, 76] },
+    { "id": "device-auth", "type": "security", "label": "登记认证过滤器", "sublabel": "exchange / confirm", "pos": [395, 310], "size": [220, 76] },
+    { "id": "enroll-service", "type": "backend", "label": "Enrollment 服务", "sublabel": "事务与 issuance 状态机", "pos": [750, 310], "size": [220, 76] },
+    { "id": "target-table", "type": "database", "label": "sp_target", "sublabel": "当前 sec_token", "pos": [1105, 310], "size": [220, 76] },
+    { "id": "management", "type": "frontend", "label": "管理 REST API", "sublabel": "创建 / 撤销共享令牌", "pos": [750, 70], "size": [220, 76] },
+    { "id": "enroll-table", "type": "database", "label": "共享令牌表", "sublabel": "全局 hash / 到期 / 撤销", "pos": [1105, 70], "size": [220, 76] },
+    { "id": "local-files", "type": "database", "label": "车端凭证文件", "sublabel": "target-token · 0600", "pos": [40, 555], "size": [220, 76] },
+    { "id": "ddi", "type": "security", "label": "现有 DDI 认证", "sublabel": "独立开关与 OTA 轮询", "pos": [395, 555], "size": [220, 76] },
+    { "id": "issuance-table", "type": "database", "label": "登记事实表", "sublabel": "tenant + VIN 唯一", "pos": [750, 555], "size": [220, 76] }
+  ],
+  "connections": [
+    { "id": "install-config", "from": "installer", "to": "agent", "label": "写入配置", "labelDy": 96 },
+    { "id": "device-request", "from": "agent", "to": "device-auth", "label": "POST + token", "variant": "emphasis" },
+    { "id": "auth-service", "from": "device-auth", "to": "enroll-service", "label": "验证 / 交换", "variant": "emphasis" },
+    { "id": "target-credential", "from": "enroll-service", "to": "target-table", "label": "创建 / 读取", "labelDy": 30 },
+    { "id": "manage-token", "from": "management", "to": "enroll-table", "label": "存 hash / 撤销" },
+    { "id": "verify-shared-token", "from": "enroll-service", "to": "enroll-table", "label": "锁定共享令牌" },
+    { "id": "persist-credential", "from": "agent", "to": "local-files", "label": "落盘后确认", "labelDy": 98 },
+    { "id": "ota-after-enroll", "from": "agent", "to": "ddi", "label": "确认后轮询", "variant": "security" },
+    { "id": "issuance-transition", "from": "enroll-service", "to": "issuance-table", "label": "PENDING / CONFIRMED", "labelDy": 98 }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "已实现的意图", "items": ["共享 token 可登记多车；确认后禁止再换。"] },
+    { "dot": "rose", "title": "上线阻塞", "items": ["迁移、管理权限、confirm 租户事务需修正。"] },
+    { "dot": "amber", "title": "尚未闭环", "items": ["confirm 不等于 DDI 登录；安装仍依赖逐车 token。"] }
+  ]
+}

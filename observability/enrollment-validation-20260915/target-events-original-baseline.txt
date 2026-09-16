@@ -1,0 +1,136 @@
+-------------------------------------------------------------------------------
+Test set: org.eclipse.zota.repository.jpa.management.TargetManagementTest
+-------------------------------------------------------------------------------
+Tests run: 41, Failures: 12, Errors: 0, Skipped: 0, Time elapsed: 19.42 s <<< FAILURE! -- in org.eclipse.zota.repository.jpa.management.TargetManagementTest
+org.eclipse.zota.repository.jpa.management.TargetManagementTest.update -- Time elapsed: 0.635 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Missing event expectation for class org.eclipse.zota.repository.event.remote.entity.DistributionSetTypeCreatedEvent with count: 1 
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.verifyAllEventsCounted(EventVerifier.java:134)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.lambda$afterTestMethod$0(EventVerifier.java:103)
+	at java.base/java.util.Optional.ifPresent(Optional.java:182)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.afterTestMethod(EventVerifier.java:100)
+	at org.springframework.test.context.TestContextManager.afterTestMethod(TestContextManager.java:488)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.afterEach(SpringExtension.java:274)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+
+org.eclipse.zota.repository.jpa.management.TargetManagementTest.creates -- Time elapsed: 0.365 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Missing event expectation for class org.eclipse.zota.repository.event.remote.entity.DistributionSetTypeCreatedEvent with count: 1 
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.verifyAllEventsCounted(EventVerifier.java:134)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.lambda$afterTestMethod$0(EventVerifier.java:103)
+	at java.base/java.util.Optional.ifPresent(Optional.java:182)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.afterTestMethod(EventVerifier.java:100)
+	at org.springframework.test.context.TestContextManager.afterTestMethod(TestContextManager.java:488)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.afterEach(SpringExtension.java:274)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+
+org.eclipse.zota.repository.jpa.management.TargetManagementTest.targetTagBulkAssignments -- Time elapsed: 0.689 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Missing event expectation for class org.eclipse.zota.repository.event.remote.entity.DistributionSetTypeCreatedEvent with count: 1 
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.verifyAllEventsCounted(EventVerifier.java:134)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.lambda$afterTestMethod$0(EventVerifier.java:103)
+	at java.base/java.util.Optional.ifPresent(Optional.java:182)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.afterTestMethod(EventVerifier.java:100)
+	at org.springframework.test.context.TestContextManager.afterTestMethod(TestContextManager.java:488)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.afterEach(SpringExtension.java:274)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+
+org.eclipse.zota.repository.jpa.management.TargetManagementTest.targetCanBeReadWithOnlyReadTargetPermission -- Time elapsed: 0.362 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Missing event expectation for class org.eclipse.zota.repository.event.remote.entity.DistributionSetTypeCreatedEvent with count: 1 
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.verifyAllEventsCounted(EventVerifier.java:134)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.lambda$afterTestMethod$0(EventVerifier.java:103)
+	at java.base/java.util.Optional.ifPresent(Optional.java:182)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.afterTestMethod(EventVerifier.java:100)
+	at org.springframework.test.context.TestContextManager.afterTestMethod(TestContextManager.java:488)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.afterEach(SpringExtension.java:274)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+
+org.eclipse.zota.repository.jpa.management.TargetManagementTest.failToCreateAndUpdateTargetWithInvalidFields -- Time elapsed: 0.453 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Missing event expectation for class org.eclipse.zota.repository.event.remote.entity.DistributionSetTypeCreatedEvent with count: 1 
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.verifyAllEventsCounted(EventVerifier.java:134)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.lambda$afterTestMethod$0(EventVerifier.java:103)
+	at java.base/java.util.Optional.ifPresent(Optional.java:182)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.afterTestMethod(EventVerifier.java:100)
+	at org.springframework.test.context.TestContextManager.afterTestMethod(TestContextManager.java:488)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.afterEach(SpringExtension.java:274)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+
+org.eclipse.zota.repository.jpa.management.TargetManagementTest.targetTagAssignment -- Time elapsed: 0.550 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Missing event expectation for class org.eclipse.zota.repository.event.remote.entity.DistributionSetTypeCreatedEvent with count: 1 
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.verifyAllEventsCounted(EventVerifier.java:134)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.lambda$afterTestMethod$0(EventVerifier.java:103)
+	at java.base/java.util.Optional.ifPresent(Optional.java:182)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.afterTestMethod(EventVerifier.java:100)
+	at org.springframework.test.context.TestContextManager.afterTestMethod(TestContextManager.java:488)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.afterEach(SpringExtension.java:274)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+
+org.eclipse.zota.repository.jpa.management.TargetManagementTest.assignAndUnassignTargetsToTag -- Time elapsed: 0.561 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Missing event expectation for class org.eclipse.zota.repository.event.remote.entity.DistributionSetTypeCreatedEvent with count: 1 
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.verifyAllEventsCounted(EventVerifier.java:134)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.lambda$afterTestMethod$0(EventVerifier.java:103)
+	at java.base/java.util.Optional.ifPresent(Optional.java:182)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.afterTestMethod(EventVerifier.java:100)
+	at org.springframework.test.context.TestContextManager.afterTestMethod(TestContextManager.java:488)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.afterEach(SpringExtension.java:274)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+
+org.eclipse.zota.repository.jpa.management.TargetManagementTest.failToCreateTargetWithSameControllerId -- Time elapsed: 0.253 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Missing event expectation for class org.eclipse.zota.repository.event.remote.entity.DistributionSetTypeCreatedEvent with count: 1 
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.verifyAllEventsCounted(EventVerifier.java:134)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.lambda$afterTestMethod$0(EventVerifier.java:103)
+	at java.base/java.util.Optional.ifPresent(Optional.java:182)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.afterTestMethod(EventVerifier.java:100)
+	at org.springframework.test.context.TestContextManager.afterTestMethod(TestContextManager.java:488)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.afterEach(SpringExtension.java:274)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+
+org.eclipse.zota.repository.jpa.management.TargetManagementTest.targetTypeBulkAssignments -- Time elapsed: 0.563 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Missing event expectation for class org.eclipse.zota.repository.event.remote.entity.DistributionSetTypeCreatedEvent with count: 1 
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.verifyAllEventsCounted(EventVerifier.java:134)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.lambda$afterTestMethod$0(EventVerifier.java:103)
+	at java.base/java.util.Optional.ifPresent(Optional.java:182)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.afterTestMethod(EventVerifier.java:100)
+	at org.springframework.test.context.TestContextManager.afterTestMethod(TestContextManager.java:488)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.afterEach(SpringExtension.java:274)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+
+org.eclipse.zota.repository.jpa.management.TargetManagementTest.getTargetSecurityTokenOnlyWithCorrectPermission -- Time elapsed: 0.224 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Missing event expectation for class org.eclipse.zota.repository.event.remote.entity.DistributionSetTypeCreatedEvent with count: 1 
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.verifyAllEventsCounted(EventVerifier.java:134)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.lambda$afterTestMethod$0(EventVerifier.java:103)
+	at java.base/java.util.Optional.ifPresent(Optional.java:182)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.afterTestMethod(EventVerifier.java:100)
+	at org.springframework.test.context.TestContextManager.afterTestMethod(TestContextManager.java:488)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.afterEach(SpringExtension.java:274)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+
+org.eclipse.zota.repository.jpa.management.TargetManagementTest.targetTagBulkUnAssignments -- Time elapsed: 0.653 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Missing event expectation for class org.eclipse.zota.repository.event.remote.entity.DistributionSetTypeCreatedEvent with count: 1 
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.verifyAllEventsCounted(EventVerifier.java:134)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.lambda$afterTestMethod$0(EventVerifier.java:103)
+	at java.base/java.util.Optional.ifPresent(Optional.java:182)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.afterTestMethod(EventVerifier.java:100)
+	at org.springframework.test.context.TestContextManager.afterTestMethod(TestContextManager.java:488)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.afterEach(SpringExtension.java:274)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+
+org.eclipse.zota.repository.jpa.management.TargetManagementTest.findTargetByControllerIdWithDetails -- Time elapsed: 1.835 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Missing event expectation for class org.eclipse.zota.repository.event.remote.entity.DistributionSetTypeCreatedEvent with count: 1 
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.verifyAllEventsCounted(EventVerifier.java:134)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.lambda$afterTestMethod$0(EventVerifier.java:103)
+	at java.base/java.util.Optional.ifPresent(Optional.java:182)
+	at org.eclipse.zota.repository.test.matcher.EventVerifier.afterTestMethod(EventVerifier.java:100)
+	at org.springframework.test.context.TestContextManager.afterTestMethod(TestContextManager.java:488)
+	at org.springframework.test.context.junit.jupiter.SpringExtension.afterEach(SpringExtension.java:274)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1612)
+

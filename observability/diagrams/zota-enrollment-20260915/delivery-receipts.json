@@ -1,0 +1,48 @@
+{
+  "date": "2026-09-15",
+  "generator": "archify 2.17",
+  "artifacts": [
+    {
+      "diagram_type": "architecture",
+      "output": "current.architecture.html",
+      "specification_sha256": "4ccf07417f8100c8bae7fda392d0903a334f1856eae81fa20753b427d8372f6b",
+      "specification_bytes": 3249,
+      "artifact_sha256": "fa3e3a90388b2bfc52fde84d278f6d6b181b1f25fef62b18839fb549def6f353",
+      "artifact_bytes": 714514,
+      "validation": { "checks_passed": 9, "check_count": 9, "profile": "showcase", "errors": 0, "warnings": 0 },
+      "browser_evidence": "passed",
+      "browser_receipt": "current.architecture.visual-check.json",
+      "visual_review": "passed",
+      "correction_rounds": 1,
+      "image_review": {
+        "reviewer": "image-capable assistant",
+        "captures": ["current.architecture.visual-check.1440x900.light.png", "current.architecture.visual-check.2048x1320.dark.png"],
+        "observations": "Readable topology, no visible label/node collisions, balanced desktop composition."
+      }
+    },
+    {
+      "diagram_type": "sequence",
+      "output": "proposed.sequence.html",
+      "specification_sha256": "604588d3ede7fd0cd25ee0e7fa1cbd74ba15c807d9dcdd84d27dd43bd75c9754",
+      "specification_bytes": 3101,
+      "artifact_sha256": "04270f502ba863f2ef7864adf6c8596a50839813f5627236232215632f6de9d7",
+      "artifact_bytes": 710502,
+      "validation": { "checks_passed": 9, "check_count": 9, "profile": "showcase", "errors": 0, "warnings": 0 },
+      "browser_evidence": "passed",
+      "browser_receipt": "proposed.sequence.visual-check.json",
+      "visual_review": "passed",
+      "correction_rounds": 2,
+      "image_review": {
+        "reviewer": "image-capable assistant",
+        "captures": ["proposed.sequence.visual-check.1440x900.light.png", "proposed.sequence.visual-check.2048x1320.dark.png"],
+        "observations": "Ordered message rows, readable labels, no collisions, proposed-not-implemented title is explicit."
+      }
+    }
+  ],
+  "browser_scope": {
+    "state": "READ / Still",
+    "viewports": [[1440, 900], [1600, 1000], [1920, 1080], [2048, 1320]],
+    "endpoint_themes": ["light", "dark"]
+  },
+  "not_claimed": ["production validation", "hardware power-loss safety", "all interactive controls and export formats tested"]
+}

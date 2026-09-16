@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "ZOTA Enrollment · 建议修正时序（待实现）",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [1360, 680]
+  },
+  "participants": [
+    { "id": "vehicle-agent", "type": "backend", "label": "Agent" },
+    { "id": "durable-store", "type": "database", "label": "车端存储" },
+    { "id": "enrollment-api", "type": "backend", "label": "Enrollment" },
+    { "id": "target-auth", "type": "security", "label": "DDI 认证逻辑" },
+    { "id": "enrollment-db", "type": "database", "label": "云端数据库" }
+  ],
+  "messages": [
+    { "id": "read-local", "from": "vehicle-agent", "to": "durable-store", "y": 165, "label": "读取本车凭证 / 恢复状态" },
+    { "id": "exchange-if-missing", "from": "vehicle-agent", "to": "enrollment-api", "y": 200, "label": "仅缺凭证时 exchange；提交 VIN 与登记证明", "variant": "emphasis" },
+    { "id": "pending-transaction", "from": "enrollment-api", "to": "enrollment-db", "y": 235, "label": "事务：校验资格，创建 PENDING 并绑定凭证版本" },
+    { "id": "issued-credential", "from": "enrollment-api", "to": "vehicle-agent", "y": 270, "label": "返回同一 issuance 的 target token", "variant": "return" },
+    { "id": "durable-write", "from": "vehicle-agent", "to": "durable-store", "y": 305, "label": "0600 写入；同步文件与目录" },
+    { "id": "durable-success", "from": "durable-store", "to": "vehicle-agent", "y": 340, "label": "持久化成功", "variant": "return" },
+    { "id": "login-confirm", "from": "vehicle-agent", "to": "enrollment-api", "y": 375, "label": "confirm：Authorization: TargetToken", "variant": "security" },
+    { "id": "shared-authentication", "from": "enrollment-api", "to": "target-auth", "y": 410, "label": "复用 DDI 认证策略", "variant": "security" },
+    { "id": "auth-db", "from": "target-auth", "to": "enrollment-db", "y": 445, "label": "先设租户，再开启事务", "variant": "security" },
+    { "id": "confirm-transaction", "from": "enrollment-api", "to": "enrollment-db", "y": 480, "label": "认证成功后锁定绑定：PENDING → CONFIRMED" },
+    { "id": "confirm-response", "from": "enrollment-api", "to": "vehicle-agent", "y": 515, "label": "提交后返回 204；重复 confirm 仍成功", "variant": "return" },
+    { "id": "cleanup-local", "from": "vehicle-agent", "to": "durable-store", "y": 550, "label": "确认落盘后清理安装凭证" },
+    { "id": "regular-ddi", "from": "vehicle-agent", "to": "target-auth", "y": 585, "label": "后续 DDI 使用本车 target token", "variant": "emphasis" }
+  ],
+  "cards": [
+    { "dot": "amber", "title": "确认前", "items": ["仅原登记可恢复；不轮换凭证，不计为已使用。"] },
+    { "dot": "emerald", "title": "确认后", "items": ["永久拒绝再次 exchange；新 enrollment token 不能解锁。"] },
+    { "dot": "rose", "title": "共享密钥的限制", "items": ["VIN 不是身份证明；登记证明或受控审批仍需补齐。"] }
+  ]
+}

@@ -1,6 +1,6 @@
 # 车云端可观测性文档导航
 
-更新时间：`2026-09-12`
+更新时间：`2026-09-16`
 
 本文档组按实际职责拆分，便于设计评审、开发跟踪、测试验收和 DSH 进度治理。
 完整的字段、代码挂点、历史问题和详细决策仍集中保留在
@@ -120,6 +120,42 @@
       <td>架构、车端平台、数据平台、可观测性、测试</td>
       <td><code>design/recorded</code>：方案已记录；代码级保密附录仅本地保存，不纳入 Git；未部署或实车验收</td>
     </tr>
+    <tr>
+      <td><a href="25-zota-agent-first-boot-target-token-20260915.md">25-zota-agent-first-boot-target-token-20260915.md</a></td>
+      <td>zota-agent 首次启动获取 Target securityToken 的可行性、安全边界和建议流程</td>
+      <td>云端 ZOTA、车端 agent、安全、测试</td>
+      <td><code>analysis/unverified</code>：代码级分析已完成，未修改业务代码，待方案评审和端到端验证</td>
+    </tr>
+    <tr>
+      <td><a href="26-zota-enrollment-token-design-20260915.md">26-zota-enrollment-token-design-20260915.md</a></td>
+      <td>enrollment token 的两阶段 exchange/confirm 设计、数据模型、崩溃恢复和并发语义</td>
+      <td>云端 ZOTA、车端 agent、安全、测试</td>
+      <td><code>implemented/unverified</code>：已有代码，审查发现上线阻塞，详见 27</td>
+    </tr>
+    <tr>
+      <td><a href="27-zota-enrollment-review-20260915.md">27-zota-enrollment-review-20260915.md</a></td>
+      <td>enrollment 全链路审查、真实迁移/租户事务复现、安装恢复边界及 archify 图</td>
+      <td>云端 ZOTA、车端 agent、安全、测试、发布负责人</td>
+      <td><code>reviewed/blockers-found</code>：本地复现及图验证完成，业务修复和生产验收未完成</td>
+    </tr>
+    <tr>
+      <td><a href="28-zota-enrollment-compatibility-hardening-20260915.md">28-zota-enrollment-compatibility-hardening-20260915.md</a></td>
+      <td>enrollment 兼容修复、默认禁用、真实集成回归与旧事件测试对照</td>
+      <td>云端 ZOTA、车端 agent、安全、测试、发布负责人</td>
+      <td><code>implemented/local-verified</code>：新模块核心测试通过，旧事件断言存在历史问题，未生产或实车验收</td>
+    </tr>
+    <tr>
+      <td><a href="29-zota-enrollment-single-config-20260915.md">29-zota-enrollment-single-config-20260915.md</a></td>
+      <td>仅使用 config.yaml、安装/正式凭证互斥替换、确认重试与旧布局兼容</td>
+      <td>车端 agent、安装平台、安全、测试</td>
+      <td><code>implemented/local-verified</code>：Agent 全量、race、vet 和 ARM64 构建通过，未部署或实车验收</td>
+    </tr>
+    <tr>
+      <td><a href="30-zota-enrollment-web-20260916.md">30-zota-enrollment-web-20260916.md</a></td>
+      <td>登记令牌前端、admin 最小权限、永久/限时规则及分页 VIN 使用记录</td>
+      <td>前端、云端 ZOTA、安全、安装平台、测试</td>
+      <td><code>implemented/local-verified</code>：前端回归与浏览器模拟、后端真实集成通过，未部署或实车验收</td>
+    </tr>
   </tbody>
 </table>
 
@@ -160,12 +196,25 @@
     `private/` 并保持 Git 忽略，不复制凭证、内部地址或原始敏感数据。
 21. L4 Harness 目标、需求映射、场景矩阵、证据包和量产门禁写入 `24`；
     `design_only` 不得解释为已实现或已通过实车验证。
+22. zota-agent 首次启动 Target 安全令牌、enrollment 凭证、exchange API 和
+    持久化边界写入 `25`；本文只记录分析结论，不代表功能已实现。
+23. enrollment token 的详细设计、状态机、API、数据模型、崩溃恢复和测试边界
+    写入 `26`；实际实现缺口、复现证据和当前/建议图写入 `27`，
+    不得将单测或编译通过等同于生产可用。
 
 ## 快速入口
 
 - [完整设计基线](../full-link-observability.md)
 - [完整选型：SQLite、DuckDB、GreptimeDB 与车云数据平台](23-vehicle-data-platform-selection-20260912.md)
 - [L4 数据与可观测性 Harness 方案](24-l4-data-observability-harness-plan-20260912.md)
+- [zota-agent 首次启动 Target 安全令牌分析](25-zota-agent-first-boot-target-token-20260915.md)
+- [zota-agent enrollment token 设计](26-zota-enrollment-token-design-20260915.md)
+- [enrollment 全链路审查](27-zota-enrollment-review-20260915.md)
+- [enrollment 兼容性修复与验证](28-zota-enrollment-compatibility-hardening-20260915.md)
+- [enrollment 单配置文件与凭证互斥](29-zota-enrollment-single-config-20260915.md)
+- [enrollment 前端管理与永久令牌](30-zota-enrollment-web-20260916.md)
+- [enrollment 当前架构图](diagrams/zota-enrollment-20260915/current.architecture.html)
+- [enrollment 建议修正时序](diagrams/zota-enrollment-20260915/proposed.sequence.html)
 - [车端控制与视频现状](../full-link-observability.md#914-车端控制视频与-ebpf-实施设计)
 - [前端现状与本地埋点](../full-link-observability.md#912-前端-otelrum-与-deepflow-接入设计)
 - [当前工作项进度](../full-link-observability.md#913-当前工作项进度)
